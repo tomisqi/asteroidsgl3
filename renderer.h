@@ -1,6 +1,7 @@
 #pragma once
 #include "common.h"
 #include "vector.h"
+#include <stb_truetype.h>
 
 typedef S16 TextureHandleT;
 
@@ -25,9 +26,11 @@ struct RenderCommands
 
 struct Renderer
 {
+	// @todo: Use render group where each render group uses it's own shader.
 	RenderCommands renderCommands;
 };
 
 void RendererInit(Renderer* renderer_p);
 void RendererEndFrame(Renderer* renderer_p);
 void PushSprite(Renderer* renderer_p, Vector2 pos, Vector2 size, Vector2 facingV, TextureHandleT textureHandle);
+void PushText(Renderer* renderer_p, char* text, Vector2 pos, stbtt_bakedchar* bakedCharData_p, TextureHandleT textTextureHandle);

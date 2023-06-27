@@ -128,7 +128,6 @@
     <ClCompile Include="..\main.cpp" />
     <ClCompile Include="..\opengl.cpp" />
     <ClCompile Include="..\renderer.cpp" />
-    <ClCompile Include="..\text.cpp" />
     <ClCompile Include="..\textures.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -144,10 +143,14 @@
     <ClInclude Include="..\libs\stb\stb_truetype.h" />
     <ClInclude Include="..\opengl.h" />
     <ClInclude Include="..\renderer.h" />
-    <ClInclude Include="..\text.h" />
     <ClInclude Include="..\texture.h" />
     <ClInclude Include="..\utils.h" />
     <ClInclude Include="..\vector.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\shaders\sprites_shader.fs" />
+    <None Include="..\shaders\text_shader.fs" />
+    <None Include="..\shaders\vertex_shader.vs" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

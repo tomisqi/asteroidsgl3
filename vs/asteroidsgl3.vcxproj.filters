@@ -24,9 +24,6 @@
     <ClCompile Include="..\opengl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\text.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\textures.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -51,9 +48,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\opengl.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\text.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\texture.h">
@@ -89,5 +83,16 @@
     <ClInclude Include="..\asteroids.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\shaders\sprites_shader.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\shaders\text_shader.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\shaders\vertex_shader.vs">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

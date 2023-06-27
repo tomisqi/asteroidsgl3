@@ -109,6 +109,8 @@ void OpenGLInit(OpenGL* openGL_p)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);      // Set texture filtering.
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 }
 
 
@@ -121,7 +123,9 @@ void OpenGLEndFrame(OpenGL* openGl_p, RenderCommands* renderCmds_p, Texture text
 	glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transMatrix));
 
 	glClearColor(0.0f, 0.0f, 0.1f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT);
+	//glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+	//glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT); 
 	
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -138,22 +142,21 @@ void OpenGLEndFrame(OpenGL* openGl_p, RenderCommands* renderCmds_p, Texture text
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(TexturedVertex), (void*)OFFSET_OF(TexturedVertex, uv)); // uv attribute
 	glEnableVertexAttribArray(2);
 
-	glBindTexture(GL_TEXTURE_2D, openGl_p->texture);
-	
 	TextureHandleT textureHandle = -1;
 	int quadCount = renderCmds_p->vertexCount / 4;
 	int indexIndex = 0;
 	for (int quadIndex = 0; quadIndex < quadCount; quadIndex++)
 	{
+		glBindTexture(GL_TEXTURE_2D, openGl_p->texture);
 		TexturedVertex* vert_p = &renderCmds_p->vertexArray[quadIndex*4];
 		if (vert_p->textureHandle != textureHandle)
 		{
 			textureHandle = vert_p->textureHandle;
 			Texture* texture_p = &textures[textureHandle];
-			U16 format = (texture_p->nrChannels == 4) ? GL_RGBA : GL_RGB;
-			glTexImage2D(GL_TEXTURE_2D, 0, format, texture_p->width, texture_p->height, 0, format, GL_UNSIGNED_BYTE, texture_p->data);
+			U16 format = (texture_p->nrChannels == 4) ? GL_RGBA : ((texture_p->nrChannels == 3) ? GL_RGB : GL_RED);
+			glTexImage2D(GL_TEXTURE_2D, 0, format, texture_p->width, texture_p->height, 0, format, GL_UNSIGNED_BYTE, texture_p->data_p);
 		}
-//		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (GLvoid*)(indexIndex * sizeof(U16)), 0);
 		indexIndex += 6;
 	}

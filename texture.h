@@ -6,7 +6,7 @@ struct Texture
 	int width;
 	int height;
 	int nrChannels;
-	U8* data;
+	U8* data_p;
 };
 
 Texture LoadTexture(const char* filepath);

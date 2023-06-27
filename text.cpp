@@ -1,13 +1,13 @@
+#if 0
 #include <stdio.h>
-#define STB_TRUETYPE_IMPLEMENTATION  // force following include to generate implementation
 #include <stb_truetype.h>
 #include <GLFW/glfw3.h>
 
-unsigned char ttf_buffer[1 << 20];
-unsigned char temp_bitmap[512 * 512];
+static unsigned char ttf_buffer[1 << 20];
+static unsigned char temp_bitmap[512 * 512];
 
-stbtt_bakedchar cdata[96]; // ASCII 32..126 is 95 glyphs
-GLuint ftex;
+static stbtt_bakedchar cdata[96]; // ASCII 32..126 is 95 glyphs
+static GLuint ftex;
 
 void TextInit()
 {
@@ -19,6 +19,10 @@ void TextInit()
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, 512, 512, 0, GL_ALPHA, GL_UNSIGNED_BYTE, temp_bitmap);
 	// can free temp_bitmap at this point
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_COLOR_ARRAY);
+
 }
 
 void DrawText(float x, float y, char* text)
@@ -41,3 +45,5 @@ void DrawText(float x, float y, char* text)
 	glEnd();
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
+
+#endif

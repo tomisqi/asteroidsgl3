@@ -1,5 +1,5 @@
 // TODOs:
-// [ ] Coordinate system
+// [x] Coordinate system
 // [ ] Text rendering
 // [ ] Mouse support
 // [ ] Audio
@@ -8,22 +8,26 @@
 #include <stdlib.h>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <stb_truetype.h>
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
 #include <time.h>
 #include "vector.h"
 #include "color.h"
 #include "input.h"
 #include "utils.h"
-#include "text.h"
 #include "shaders.h"
 #include "opengl.h"
 #include "texture.h"
 #include "asteroids.h"
+#include "renderer.h"
+#define STB_TRUETYPE_IMPLEMENTATION
+#include <stb_truetype.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 
-#define WINDOW_SIZE	 800
-Vector2 screenDim = V2(WINDOW_SIZE, WINDOW_SIZE);
+Vector2 ScreenDim = V2(1000, 1000);
+
+U8 ttf_buffer[1 << 20];
+U8 temp_bitmap[512 * 512];
+stbtt_bakedchar cdata[96]; // ASCII 32..126 is 95 glyphs
 
 static void GlfwErrorCallback(int error, const char* description)
 {
@@ -43,6 +47,8 @@ static void BindButtons()
 	GameInput_BindButton(BUTTON_Q, GLFW_KEY_Q);
 	GameInput_BindButton(BUTTON_C, GLFW_KEY_C);
 	GameInput_BindButton(BUTTON_S, GLFW_KEY_S);
+	GameInput_BindButton(BUTTON_A, GLFW_KEY_A);
+	GameInput_BindButton(BUTTON_D, GLFW_KEY_D);
 	GameInput_BindButton(BUTTON_UP_ARROW, GLFW_KEY_UP);
 	GameInput_BindButton(BUTTON_LEFT_ARROW, GLFW_KEY_LEFT);
 	GameInput_BindButton(BUTTON_RIGHT_ARROW, GLFW_KEY_RIGHT);
@@ -75,7 +81,7 @@ int main(void)
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	GLFWwindow* window = glfwCreateWindow(WINDOW_SIZE, WINDOW_SIZE, "AsteroidsGL3", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(ScreenDim.x, ScreenDim.y, "AsteroidsGL3", NULL, NULL);
 	if (window == NULL) return -1;
 
 	glfwMakeContextCurrent(window);
@@ -90,14 +96,23 @@ int main(void)
 
 	srand(time(NULL)); // Initialize random seed
 
-	GLuint shaderProgram = LoadAndCompileShaders("../shaders/shader.vs", "../shaders/shader.fs");
+	fread(ttf_buffer, 1, 1 << 20, fopen("C:/Windows/Fonts/consola.ttf", "rb"));
+	stbtt_BakeFontBitmap(ttf_buffer, 0, 16.0, temp_bitmap, 512, 512, 32, 96, cdata);
 
-	Texture textures[5] = { 0 };
-	textures[0] = LoadTexture("../assets/textures/triangle-41361.png");	
-	textures[1] = LoadTexture("../assets/textures/path4147.png");
+	Texture textTexture = { 0 };
+	textTexture.data_p = &temp_bitmap[0];
+	textTexture.height = 512; textTexture.width = 512;
+	textTexture.nrChannels = 1;
+
+	//GLuint shaderProgram = LoadAndCompileShaders("../shaders/vertex_shader.vs", "../shaders/text_shader.fs");
+	GLuint shaderProgram = LoadAndCompileShaders("../shaders/vertex_shader.vs", "../shaders/sprites_shader.fs");
+	assert(shaderProgram >= 0);
+
+	Texture textures[4] = { 0 };
+	textures[0] = LoadTexture("../assets/textures/spacecraft.png");	
+	textures[1] = LoadTexture("../assets/textures/RedShot.png");
 	textures[2] = LoadTexture("../assets/textures/ELI.png");
-	textures[3] = LoadTexture("../assets/textures/InternalTileDev.png");
-	textures[4] = LoadTexture("../assets/textures/path4146.png");
+	textures[3] = textTexture;
 
 	OpenGL openGl;
 	OpenGLInit(&openGl);
@@ -109,6 +124,7 @@ int main(void)
 	BindButtons();
 	ButtonState buttonStates[MAX_BUTTONS];
 
+	GameInit();
 	while (!glfwWindowShouldClose(window))
 	{
 	  for (int i = 0; i < MAX_BUTTONS; i++)
@@ -117,14 +133,14 @@ int main(void)
 	  }
 	  GameInput_NewFrame(buttonStates);
 
-	  GameUpdateAndRender(GetDeltaT(), screenDim, &renderer);
+	  GameUpdateAndRender(GetDeltaT(), ScreenDim, &renderer);
 
-	  OpenGLEndFrame(&openGl, &renderer.renderCommands, textures, screenDim, shaderProgram);
+	  OpenGLEndFrame(&openGl, &renderer.renderCommands, textures, ScreenDim, shaderProgram);
 	  RendererEndFrame(&renderer);
 	  glfwSwapBuffers(window);
 	  glfwPollEvents();
 
-	  if (GameInput_ButtonDown(BUTTON_ESC)) break; // @nocommit
+	  //if (GameInput_ButtonDown(BUTTON_ESC)) break; // @nocommit
 	}
 
 	//stbi_image_free(data); //@nocommit
