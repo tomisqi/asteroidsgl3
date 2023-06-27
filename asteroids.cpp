@@ -3,8 +3,6 @@
 #include "renderer.h"
 #include "string.h"
 
-extern stbtt_bakedchar cdata[96]; //@nocommit
-
 #define SHIP_ROTATION_SPEED 360 * 1.5f // Degrees per second.
 #define SHIP_SPEED          20.0f
 #define BULLET_SPEED        800.0f
@@ -96,6 +94,6 @@ GAMEUPDATE_END:
 	if (ship.enabled)   PushSprite(renderer_p, ship.pos, 75.0f * VECTOR2_ONE, ship.facingV, 0);
 
 	char velStr[32] = { 0 };
-	sprintf(velStr, "vel=%.02f", Magnitude(ship.vel));
-	PushText(renderer_p, velStr, VECTOR2_ZERO, &cdata[0], 3);
+	sprintf(velStr, "pos (%.02f, %.02f)", ship.pos.x, ship.pos.y);
+	PushText(renderer_p, velStr, VECTOR2_ZERO);	
 }

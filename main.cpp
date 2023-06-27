@@ -1,6 +1,6 @@
 // TODOs:
 // [x] Coordinate system
-// [ ] Text rendering
+// [x] Text rendering
 // [ ] Mouse support
 // [ ] Audio
 
@@ -24,10 +24,6 @@
 #include <stb_image.h>
 
 Vector2 ScreenDim = V2(1000, 1000);
-
-U8 ttf_buffer[1 << 20];
-U8 temp_bitmap[512 * 512];
-stbtt_bakedchar cdata[96]; // ASCII 32..126 is 95 glyphs
 
 static void GlfwErrorCallback(int error, const char* description)
 {
@@ -96,19 +92,10 @@ int main(void)
 
 	srand(time(NULL)); // Initialize random seed
 
-	fread(ttf_buffer, 1, 1 << 20, fopen("C:/Windows/Fonts/consola.ttf", "rb"));
-	stbtt_BakeFontBitmap(ttf_buffer, 0, 16.0, temp_bitmap, 512, 512, 32, 96, cdata);
-
-	Texture textTexture = { 0 };
-	textTexture.data_p = &temp_bitmap[0];
-	textTexture.height = 512; textTexture.width = 512;
-	textTexture.nrChannels = 1;
-
-	Texture textures[4] = { 0 };
+	Texture textures[3] = { 0 };
 	textures[0] = LoadTexture("../assets/textures/spacecraft.png");	
 	textures[1] = LoadTexture("../assets/textures/RedShot.png");
 	textures[2] = LoadTexture("../assets/textures/ELI.png");
-	textures[3] = textTexture;
 
 	OpenGL openGl;
 	OpenGLInit(&openGl);

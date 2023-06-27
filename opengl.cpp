@@ -109,8 +109,6 @@ void OpenGLInit(OpenGL* openGL_p)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);      // Set texture filtering.
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 }
 
 void OpenGLEndFrame(OpenGL* openGl_p, Renderer* renderer_p, Texture textures[], Vector2 screenDim)
@@ -125,20 +123,6 @@ void OpenGLEndFrame(OpenGL* openGl_p, Renderer* renderer_p, Texture textures[], 
 	{
 		RenderGroup* rendGrp_p = &renderer_p->renderGroups[i];
 		UseShader(rendGrp_p->shaderProgram);
-
-		U16 textureFormat = 0xffff;
-		switch (rendGrp_p->renderGroupType)
-		{
-		case RENDER_GROUP_SPRITES_DEFAULT:
-			textureFormat = GL_RGBA;
-			break;
-		case RENDER_GROUP_TEXT_DEFAULT:
-			textureFormat = GL_RED;
-			break;
-		default:
-			assert(false);
-			break;
-		}
 
 		glm::mat4 transMatrix = glm::mat4(1.0f);
 		transMatrix = glm::scale(transMatrix, glm::vec3(2.0f / screenDim.x, 2.0f / screenDim.y, 1.0f));
@@ -159,23 +143,50 @@ void OpenGLEndFrame(OpenGL* openGl_p, Renderer* renderer_p, Texture textures[], 
 		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(TexturedVertex), (void*)OFFSET_OF(TexturedVertex, uv)); // uv attribute
 		glEnableVertexAttribArray(2);
 
-		TextureHandleT textureHandle = -1;
-		int quadCount = renderCmds_p->vertexCount / 4;
-		int indexIndex = 0;
-		for (int quadIndex = 0; quadIndex < quadCount; quadIndex++)
+		switch (rendGrp_p->renderGroupType)
 		{
-			glBindTexture(GL_TEXTURE_2D, openGl_p->texture);
-			TexturedVertex* vert_p = &renderCmds_p->vertexArray[quadIndex * 4];
-			if (vert_p->textureHandle != textureHandle)
+		case RENDER_GROUP_SPRITES_DEFAULT:
+		{
+			TextureHandleT textureHandle = -1;
+			int quadCount = renderCmds_p->vertexCount / 4;
+			int indexIndex = 0;
+			for (int quadIndex = 0; quadIndex < quadCount; quadIndex++)
 			{
-				textureHandle = vert_p->textureHandle;
-				Texture* texture_p = &textures[textureHandle];
-				glTexImage2D(GL_TEXTURE_2D, 0, textureFormat, texture_p->width, texture_p->height, 0, textureFormat, GL_UNSIGNED_BYTE, texture_p->data_p);
+				glBindTexture(GL_TEXTURE_2D, openGl_p->texture);
+				TexturedVertex* vert_p = &renderCmds_p->vertexArray[quadIndex * 4];
+				if (vert_p->textureHandle != textureHandle)
+				{
+					textureHandle = vert_p->textureHandle;
+					Texture* texture_p = &textures[textureHandle];
+					glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture_p->width, texture_p->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture_p->data_p);
+				}
+				//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+				glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (GLvoid*)(indexIndex * sizeof(U16)), 0);
+				indexIndex += 6;
 			}
-			//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-			glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (GLvoid*)(indexIndex * sizeof(U16)), 0);
-			indexIndex += 6;
 		}
+			break;
+		case RENDER_GROUP_TEXT_DEFAULT:
+		{
+			Texture* textTexture_p = &renderer_p->textRendering.textTexture;
+			int quadCount = renderCmds_p->vertexCount / 4;
+			int indexIndex = 0;
+			for (int quadIndex = 0; quadIndex < quadCount; quadIndex++)
+			{
+				glBindTexture(GL_TEXTURE_2D, openGl_p->texture);
+				TexturedVertex* vert_p = &renderCmds_p->vertexArray[quadIndex * 4];
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, textTexture_p->width, textTexture_p->height, 0, GL_RED, GL_UNSIGNED_BYTE, textTexture_p->data_p);
+				//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+				glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (GLvoid*)(indexIndex * sizeof(U16)), 0);
+				indexIndex += 6;
+			}
+		}
+			break;
+		default:
+			assert(false);
+			break;
+		};
+
 
 	}
 }

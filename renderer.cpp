@@ -1,5 +1,5 @@
 #include <string.h>
-#include <stdlib.h>
+#include <stdio.h>
 #include <assert.h>
 #include <glad/glad.h>
 #include <math.h>
@@ -8,9 +8,12 @@
 #include "vector.h"
 #include "renderer.h"
 #include "opengl.h"
+#include <stdlib.h>
 
 #define MAX_SPRITE_QUADS  (1 << 8)
 #define MAX_TEXT_QUADS    (1 << 10)
+
+static U8 ttfBuffer[1 << 20];
 
 static RenderGroup CreateRendererGroup(RenderGroupTypeE rendererGroupType, int shaderProgram, int maxQuads);
 static RenderGroup* FindRenderGroup(Renderer* renderer_p, RenderGroupTypeE rendererGroupType);
@@ -18,6 +21,10 @@ static RenderGroup* FindRenderGroup(Renderer* renderer_p, RenderGroupTypeE rende
 void RendererInit(Renderer* renderer_p)
 {
 	memset(renderer_p, 0, sizeof(*renderer_p));
+
+	//
+	// Render groups
+	//
 
 	GLuint spriteShaderProgram = LoadAndCompileShaders("../shaders/vertex_shader.vs", "../shaders/sprites_shader.fs"); 
 	assert(spriteShaderProgram >= 0);
@@ -28,6 +35,18 @@ void RendererInit(Renderer* renderer_p)
 	renderer_p->renderGroups[1] = CreateRendererGroup(RENDER_GROUP_TEXT_DEFAULT, textShaderProgram, MAX_TEXT_QUADS);
 
 	renderer_p->groupCnt = 2;
+
+	//
+	// Text Textures
+	// 
+
+	Texture* textTexture_p = &renderer_p->textRendering.textTexture;
+	textTexture_p->data_p = (U8*)malloc(512 * 512);
+	textTexture_p->width = 512;
+	textTexture_p->height = 512;
+
+	fread(ttfBuffer, 1, 1 << 20, fopen("C:/Windows/Fonts/consola.ttf", "rb"));
+	stbtt_BakeFontBitmap(ttfBuffer, 0, 16.0, textTexture_p->data_p, 512, 512, 32, 96, renderer_p->textRendering.charUvData);
 }
 
 void RendererEndFrame(Renderer* renderer_p)
@@ -86,10 +105,12 @@ void PushSprite(Renderer* renderer_p, Vector2 pos, Vector2 size, Vector2 facingV
 	renderCmds_p->indexCount += 6;
 }
 
-void PushText(Renderer* renderer_p, char* text, Vector2 pos, stbtt_bakedchar* bakedCharData_p, TextureHandleT textTextureHandle = 0xffff)
+void PushText(Renderer* renderer_p, char* text, Vector2 pos)
 {
 	RenderGroup* rendGrp_p = FindRenderGroup(renderer_p, RENDER_GROUP_TEXT_DEFAULT);
 	assert(rendGrp_p);
+
+	stbtt_bakedchar* bakedCharData_p = renderer_p->textRendering.charUvData;
 
 	while (*text) 
 	{
@@ -107,19 +128,15 @@ void PushText(Renderer* renderer_p, char* text, Vector2 pos, stbtt_bakedchar* ba
 			vert_p[0].pos = V3(q.x0, -q.y0, 0.0f);
 			vert_p[0].color = VECTOR3_ONE;
 			vert_p[0].uv = V2(q.s0, q.t0);
-			vert_p[0].textureHandle = textTextureHandle;
 			vert_p[1].pos = V3(q.x1, -q.y0, 0.0f);
 			vert_p[1].color = VECTOR3_ONE;
 			vert_p[1].uv = V2(q.s1, q.t0);
-			vert_p[1].textureHandle = textTextureHandle;
 			vert_p[2].pos = V3(q.x1, -q.y1, 0.0f);
 			vert_p[2].color = VECTOR3_ONE;
 			vert_p[2].uv = V2(q.s1, q.t1);
-			vert_p[2].textureHandle = textTextureHandle;
 			vert_p[3].pos = V3(q.x0, -q.y1, 0.0f);
 			vert_p[3].color = VECTOR3_ONE;
 			vert_p[3].uv = V2(q.s0, q.t1);
-			vert_p[3].textureHandle = textTextureHandle;
 
 			U16 baseIndex = renderCmds_p->vertexCount;
 			U16* index_p = &renderCmds_p->indexArray[renderCmds_p->indexCount];
