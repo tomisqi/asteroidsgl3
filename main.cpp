@@ -104,10 +104,6 @@ int main(void)
 	textTexture.height = 512; textTexture.width = 512;
 	textTexture.nrChannels = 1;
 
-	//GLuint shaderProgram = LoadAndCompileShaders("../shaders/vertex_shader.vs", "../shaders/text_shader.fs");
-	GLuint shaderProgram = LoadAndCompileShaders("../shaders/vertex_shader.vs", "../shaders/sprites_shader.fs");
-	assert(shaderProgram >= 0);
-
 	Texture textures[4] = { 0 };
 	textures[0] = LoadTexture("../assets/textures/spacecraft.png");	
 	textures[1] = LoadTexture("../assets/textures/RedShot.png");
@@ -135,7 +131,7 @@ int main(void)
 
 	  GameUpdateAndRender(GetDeltaT(), ScreenDim, &renderer);
 
-	  OpenGLEndFrame(&openGl, &renderer.renderCommands, textures, ScreenDim, shaderProgram);
+	  OpenGLEndFrame(&openGl, &renderer, textures, ScreenDim);
 	  RendererEndFrame(&renderer);
 	  glfwSwapBuffers(window);
 	  glfwPollEvents();

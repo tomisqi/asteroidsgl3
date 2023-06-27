@@ -3,7 +3,16 @@
 #include "vector.h"
 #include <stb_truetype.h>
 
+#define MAX_RENDER_GROUPS 2
+
 typedef S16 TextureHandleT;
+
+enum RenderGroupTypeE
+{
+	NONE,
+	RENDER_GROUP_SPRITES_DEFAULT,
+	RENDER_GROUP_TEXT_DEFAULT,
+};
 
 struct TexturedVertex
 {
@@ -24,10 +33,17 @@ struct RenderCommands
 	U16* indexArray;
 };
 
+struct RenderGroup
+{
+	RenderGroupTypeE renderGroupType;
+	int shaderProgram;
+	RenderCommands renderCommands;
+};
+
 struct Renderer
 {
-	// @todo: Use render group where each render group uses it's own shader.
-	RenderCommands renderCommands;
+	int groupCnt;
+	RenderGroup renderGroups[MAX_RENDER_GROUPS];
 };
 
 void RendererInit(Renderer* renderer_p);

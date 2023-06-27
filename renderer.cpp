@@ -7,32 +7,45 @@
 #include "common.h"
 #include "vector.h"
 #include "renderer.h"
+#include "opengl.h"
 
-#define NO_TEXTURE 0xffff
-#define MAX_QUADS  256
+#define MAX_SPRITE_QUADS  (1 << 8)
+#define MAX_TEXT_QUADS    (1 << 10)
+
+static RenderGroup CreateRendererGroup(RenderGroupTypeE rendererGroupType, int shaderProgram, int maxQuads);
+static RenderGroup* FindRenderGroup(Renderer* renderer_p, RenderGroupTypeE rendererGroupType);
 
 void RendererInit(Renderer* renderer_p)
 {
 	memset(renderer_p, 0, sizeof(*renderer_p));
 
-	renderer_p->renderCommands.maxVertexCount = MAX_QUADS * 4;
-	renderer_p->renderCommands.vertexArray = (TexturedVertex*)malloc(MAX_QUADS * 4 * sizeof(TexturedVertex));
-	renderer_p->renderCommands.vertexCount = 0;
-	
-	renderer_p->renderCommands.maxIndexCount = MAX_QUADS * 6;
-	renderer_p->renderCommands.indexArray = (U16*)malloc(MAX_QUADS * 6 * sizeof(U32));
-	renderer_p->renderCommands.indexCount = 0;
+	GLuint spriteShaderProgram = LoadAndCompileShaders("../shaders/vertex_shader.vs", "../shaders/sprites_shader.fs"); 
+	assert(spriteShaderProgram >= 0);
+	renderer_p->renderGroups[0] = CreateRendererGroup(RENDER_GROUP_SPRITES_DEFAULT, spriteShaderProgram, MAX_SPRITE_QUADS);
+
+	GLuint textShaderProgram = LoadAndCompileShaders("../shaders/vertex_shader.vs", "../shaders/text_shader.fs"); 
+	assert(textShaderProgram >= 0);
+	renderer_p->renderGroups[1] = CreateRendererGroup(RENDER_GROUP_TEXT_DEFAULT, textShaderProgram, MAX_TEXT_QUADS);
+
+	renderer_p->groupCnt = 2;
 }
 
 void RendererEndFrame(Renderer* renderer_p)
 {
-	renderer_p->renderCommands.vertexCount = 0;
-	renderer_p->renderCommands.indexCount = 0;
+	for (int i = 0; i < renderer_p->groupCnt; i++)
+	{
+		RenderGroup* rendGrp_p = &renderer_p->renderGroups[i];
+		rendGrp_p->renderCommands.vertexCount = 0;
+		rendGrp_p->renderCommands.indexCount = 0;
+	}
 }
 
 void PushSprite(Renderer* renderer_p, Vector2 pos, Vector2 size, Vector2 facingV = V2(0, 1), TextureHandleT textureHandle = 0xffff)
 {
-	RenderCommands* renderCmds_p = &renderer_p->renderCommands;
+	RenderGroup* rendGrp_p = FindRenderGroup(renderer_p, RENDER_GROUP_SPRITES_DEFAULT);
+	assert(rendGrp_p);
+
+	RenderCommands* renderCmds_p = &rendGrp_p->renderCommands;
 	assert(renderCmds_p->vertexCount < renderCmds_p->maxVertexCount);
 	assert(renderCmds_p->indexCount < renderCmds_p->maxIndexCount);
 
@@ -75,11 +88,14 @@ void PushSprite(Renderer* renderer_p, Vector2 pos, Vector2 size, Vector2 facingV
 
 void PushText(Renderer* renderer_p, char* text, Vector2 pos, stbtt_bakedchar* bakedCharData_p, TextureHandleT textTextureHandle = 0xffff)
 {
+	RenderGroup* rendGrp_p = FindRenderGroup(renderer_p, RENDER_GROUP_TEXT_DEFAULT);
+	assert(rendGrp_p);
+
 	while (*text) 
 	{
 		if (*text >= 32 && *text < 128) 
 		{
-			RenderCommands* renderCmds_p = &renderer_p->renderCommands;
+			RenderCommands* renderCmds_p = &rendGrp_p->renderCommands;
 			assert(renderCmds_p->vertexCount < renderCmds_p->maxVertexCount);
 			assert(renderCmds_p->indexCount < renderCmds_p->maxIndexCount);
 
@@ -121,3 +137,27 @@ void PushText(Renderer* renderer_p, char* text, Vector2 pos, stbtt_bakedchar* ba
 	}
 }
 
+
+static RenderGroup CreateRendererGroup(RenderGroupTypeE rendererGroupType, int shaderProgram, int maxQuads)
+{
+	RenderGroup rendGrp;	
+	rendGrp.renderGroupType = rendererGroupType;
+	rendGrp.shaderProgram = shaderProgram;
+	rendGrp.renderCommands.maxVertexCount = maxQuads * 4;
+	rendGrp.renderCommands.vertexArray = (TexturedVertex*)malloc(maxQuads * 4 * sizeof(TexturedVertex));
+	rendGrp.renderCommands.vertexCount = 0;
+	rendGrp.renderCommands.maxIndexCount = maxQuads * 6;
+	rendGrp.renderCommands.indexArray = (U16*)malloc(maxQuads * 6 * sizeof(U32));
+	rendGrp.renderCommands.indexCount = 0;
+
+	return rendGrp;
+}
+
+static RenderGroup* FindRenderGroup(Renderer* renderer_p, RenderGroupTypeE rendererGroupType)
+{
+	for (size_t i = 0; i < renderer_p->groupCnt; i++)
+	{
+		if (renderer_p->renderGroups[i].renderGroupType == rendererGroupType) return &renderer_p->renderGroups[i];
+	}
+	return nullptr;
+}
