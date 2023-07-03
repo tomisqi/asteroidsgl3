@@ -113,7 +113,8 @@ void OpenGLInit(OpenGL* openGL_p)
 
 void OpenGLEndFrame(OpenGL* openGl_p, Renderer* renderer_p, Texture textures[], Vector2 screenDim)
 {
-	glClearColor(0.0f, 0.0f, 0.1f, 1.0f);
+	//glClearColor(0.0f, 0.0f, 0.1f, 1.0f);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	glEnable(GL_BLEND);
@@ -123,11 +124,6 @@ void OpenGLEndFrame(OpenGL* openGl_p, Renderer* renderer_p, Texture textures[], 
 	{
 		RenderGroup* rendGrp_p = &renderer_p->renderGroups[i];
 		UseShader(rendGrp_p->shaderProgram);
-
-		glm::mat4 transMatrix = glm::mat4(1.0f);
-		transMatrix = glm::scale(transMatrix, glm::vec3(2.0f / screenDim.x, 2.0f / screenDim.y, 1.0f));
-		unsigned int transformLoc = glGetUniformLocation(rendGrp_p->shaderProgram, "transform");
-		glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transMatrix));
 
 		RenderCommands* renderCmds_p = &rendGrp_p->renderCommands;
 
@@ -147,6 +143,12 @@ void OpenGLEndFrame(OpenGL* openGl_p, Renderer* renderer_p, Texture textures[], 
 		{
 		case RENDER_GROUP_SPRITES_DEFAULT:
 		{
+			// Matrix transform
+			glm::mat4 transMatrix = glm::mat4(1.0f);
+			transMatrix = glm::scale(transMatrix, glm::vec3(2.0f / screenDim.x, 2.0f / screenDim.y, 1.0f));
+			unsigned int transformLoc = glGetUniformLocation(rendGrp_p->shaderProgram, "transform");
+			glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transMatrix));
+
 			TextureHandleT textureHandle = -1;
 			int quadCount = renderCmds_p->vertexCount / 4;
 			int indexIndex = 0;
@@ -168,6 +170,13 @@ void OpenGLEndFrame(OpenGL* openGl_p, Renderer* renderer_p, Texture textures[], 
 			break;
 		case RENDER_GROUP_TEXT_DEFAULT:
 		{
+			// Matrix transform
+			// Note: Use a negative in the Y transform given how stb builds the quad.
+			glm::mat4 transMatrix = glm::mat4(1.0f);
+			transMatrix = glm::scale(transMatrix, glm::vec3(2.0f / screenDim.x, (-1) * 2.0f / screenDim.y, 1.0f));
+			unsigned int transformLoc = glGetUniformLocation(rendGrp_p->shaderProgram, "transform");
+			glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transMatrix));
+
 			Texture* textTexture_p = &renderer_p->textRendering.textTexture;
 			int quadCount = renderCmds_p->vertexCount / 4;
 			int indexIndex = 0;

@@ -4,7 +4,7 @@
 #include "texture.h"
 #include <stb_truetype.h>
 
-#define MAX_RENDER_GROUPS 2
+#define MAX_RENDER_GROUPS 16
 
 typedef S16 TextureHandleT;
 
@@ -57,5 +57,5 @@ struct Renderer
 
 void RendererInit(Renderer* renderer_p);
 void RendererEndFrame(Renderer* renderer_p);
-void PushSprite(Renderer* renderer_p, Vector2 pos, Vector2 size, Vector2 facingV, TextureHandleT textureHandle);
-void PushText(Renderer* renderer_p, char* text, Vector2 pos);
+void PushSprite(Renderer* renderer_p, Vector2 pos, Vector2 size, Vector2 facingV, TextureHandleT textureHandle, Vector3 color = VECTOR3_ONE);
+void PushText(Renderer* renderer_p, const char* text, Vector2 pos, Vector3 color = VECTOR3_ONE);

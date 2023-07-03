@@ -1,8 +1,11 @@
 // TODOs:
 // [x] Coordinate system
 // [x] Text rendering
-// [ ] Mouse support
+// [x] Mouse support
 // [ ] Audio
+// [ ] Collisions
+// [ ] Animations
+// [ ] Particle system
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,12 +21,13 @@
 #include "texture.h"
 #include "asteroids.h"
 #include "renderer.h"
+#include "ui.h"
 #define STB_TRUETYPE_IMPLEMENTATION
 #include <stb_truetype.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-Vector2 ScreenDim = V2(1000, 1000);
+Vector2 ScreenDim = V2(800, 800);
 
 static void GlfwErrorCallback(int error, const char* description)
 {
@@ -92,10 +96,11 @@ int main(void)
 
 	srand(time(NULL)); // Initialize random seed
 
-	Texture textures[3] = { 0 };
+	Texture textures[4] = { 0 };
 	textures[0] = LoadTexture("../assets/textures/spacecraft.png");	
 	textures[1] = LoadTexture("../assets/textures/RedShot.png");
 	textures[2] = LoadTexture("../assets/textures/ELI.png");
+	textures[3] = LoadTexture("../assets/textures/InternalTileDev.png");
 
 	OpenGL openGl;
 	OpenGLInit(&openGl);
@@ -106,7 +111,9 @@ int main(void)
 	GameInput_Init();
 	BindButtons();
 	ButtonState buttonStates[MAX_BUTTONS];
+	glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
 
+	UI_Init(&renderer);
 	GameInit();
 	while (!glfwWindowShouldClose(window))
 	{
@@ -116,14 +123,18 @@ int main(void)
 	  }
 	  GameInput_NewFrame(buttonStates);
 
-	  GameUpdateAndRender(GetDeltaT(), ScreenDim, &renderer);
+	  double mouseXpos, mouseYpos;
+	  glfwGetCursorPos(window, &mouseXpos, &mouseYpos);
+	  UI_NewFrame(V2(mouseXpos, mouseYpos), glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS, ScreenDim);
+
+	  bool quit = GameUpdateAndRender(GetDeltaT(), ScreenDim, &renderer);
 
 	  OpenGLEndFrame(&openGl, &renderer, textures, ScreenDim);
 	  RendererEndFrame(&renderer);
 	  glfwSwapBuffers(window);
 	  glfwPollEvents();
 
-	  //if (GameInput_ButtonDown(BUTTON_ESC)) break; // @nocommit
+	  if (quit) break;
 	}
 
 	//stbi_image_free(data); //@nocommit

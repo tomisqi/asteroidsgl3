@@ -129,6 +129,7 @@
     <ClCompile Include="..\opengl.cpp" />
     <ClCompile Include="..\renderer.cpp" />
     <ClCompile Include="..\textures.cpp" />
+    <ClCompile Include="..\ui.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\asteroids.h" />
@@ -142,8 +143,10 @@
     <ClInclude Include="..\libs\stb\stb_image.h" />
     <ClInclude Include="..\libs\stb\stb_truetype.h" />
     <ClInclude Include="..\opengl.h" />
+    <ClInclude Include="..\rect.h" />
     <ClInclude Include="..\renderer.h" />
     <ClInclude Include="..\texture.h" />
+    <ClInclude Include="..\ui.h" />
     <ClInclude Include="..\utils.h" />
     <ClInclude Include="..\vector.h" />
   </ItemGroup>
