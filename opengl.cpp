@@ -207,7 +207,7 @@ void OpenGLEndFrame(OpenGL* openGl_p, Renderer* renderer_p, Texture textures[], 
 		case RENDER_GROUP_WIREFRAME:
 		{
 			glBindBuffer(GL_ARRAY_BUFFER, openGl_p->VBO);
-			glBufferData(GL_ARRAY_BUFFER, renderCmds_p->vertexCount * sizeof(ColoredVertex), renderCmds_p->vertexOnlyColoredArray, GL_DYNAMIC_DRAW);
+			glBufferData(GL_ARRAY_BUFFER, renderCmds_p->vertexCount * sizeof(ColoredVertex), renderCmds_p->onlyColoredVertexArray, GL_DYNAMIC_DRAW);
 			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ColoredVertex), (void*)OFFSET_OF(ColoredVertex, pos)); // position attribute
 			glEnableVertexAttribArray(0);
 			glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(ColoredVertex), (void*)OFFSET_OF(ColoredVertex, color)); // color attribute

@@ -77,10 +77,10 @@ void PushSprite(Renderer* renderer_p, Vector2 pos, Vector2 size, Vector2 facingV
 	assert(renderCmds_p->indexCount < renderCmds_p->maxIndexCount);
 
 	float angleRad = atan2(-facingV.x, facingV.y);
-	Vector2 MaxXMaxY = pos + RotateRad(V2( 0.5f * size.x,  0.5 * size.y), angleRad);
-	Vector2 MaxXMinY = pos + RotateRad(V2( 0.5f * size.x, -0.5 * size.y), angleRad);
-	Vector2 MinXMinY = pos + RotateRad(V2(-0.5f * size.x, -0.5 * size.y), angleRad);
-	Vector2 MinXMaxY = pos + RotateRad(V2(-0.5f * size.x,  0.5 * size.y), angleRad);
+	Vector2 MaxXMaxY = pos + RotateRad(V2( 0.5f * size.x,  0.5f * size.y), angleRad);
+	Vector2 MaxXMinY = pos + RotateRad(V2( 0.5f * size.x, -0.5f * size.y), angleRad);
+	Vector2 MinXMinY = pos + RotateRad(V2(-0.5f * size.x, -0.5f * size.y), angleRad);
+	Vector2 MinXMaxY = pos + RotateRad(V2(-0.5f * size.x,  0.5f * size.y), angleRad);
 
 	TexturedVertex* vert_p = &renderCmds_p->vertexArray[renderCmds_p->vertexCount];
 	vert_p[0].pos = V3(MaxXMaxY);
@@ -162,7 +162,7 @@ void PushText(Renderer* renderer_p, const char* text, Vector2 pos, Vector3 color
 	}
 }
 
-void PushRect(Renderer* renderer_p, Rect rect, Vector3 color)
+void PushRect(Renderer* renderer_p, Rect rect, Vector3 color, Vector2 facingV)
 {
 	RenderGroup* rendGrp_p = FindRenderGroup(renderer_p, RENDER_GROUP_WIREFRAME);
 	assert(rendGrp_p);
@@ -171,12 +171,52 @@ void PushRect(Renderer* renderer_p, Rect rect, Vector3 color)
 	assert(renderCmds_p->vertexCount < renderCmds_p->maxVertexCount);
 	assert(renderCmds_p->indexCount < renderCmds_p->maxIndexCount);
 
-	Vector2 MaxXMaxY = RectMaxXMaxY(rect);
-	Vector2 MaxXMinY = RectMaxXMinY(rect);
-	Vector2 MinXMinY = RectMinXMinY(rect);
-	Vector2 MinXMaxY = RectMinXMaxY(rect);
+	float angleRad = atan2(-facingV.x, facingV.y);
+	Vector2 rectCenter = GetRectCenter(rect); // Rotates around center
+	Vector2 MaxXMaxY = rectCenter + RotateRad(V2(0.5f * rect.size.x, 0.5f * rect.size.y), angleRad);
+	Vector2 MaxXMinY = rectCenter + RotateRad(V2(0.5f * rect.size.x, -0.5f * rect.size.y), angleRad);
+	Vector2 MinXMinY = rectCenter + RotateRad(V2(-0.5f * rect.size.x, -0.5f * rect.size.y), angleRad);
+	Vector2 MinXMaxY = rectCenter + RotateRad(V2(-0.5f * rect.size.x, 0.5f * rect.size.y), angleRad);
 
-	ColoredVertex* vert_p = &renderCmds_p->vertexOnlyColoredArray[renderCmds_p->vertexCount];
+	ColoredVertex* vert_p = &renderCmds_p->onlyColoredVertexArray[renderCmds_p->vertexCount];
+	vert_p[0].pos = V3(MaxXMaxY);
+	vert_p[0].color = color;
+	vert_p[1].pos = V3(MaxXMinY);
+	vert_p[1].color = color;
+	vert_p[2].pos = V3(MinXMinY);
+	vert_p[2].color = color;
+	vert_p[3].pos = V3(MinXMaxY);
+	vert_p[3].color = color;
+
+	U16 baseIndex = renderCmds_p->vertexCount;
+	U16* index_p = &renderCmds_p->indexArray[renderCmds_p->indexCount];
+	index_p[0] = baseIndex + 0;
+	index_p[1] = baseIndex + 1;
+	index_p[2] = baseIndex + 3;
+	index_p[3] = baseIndex + 1;
+	index_p[4] = baseIndex + 2;
+	index_p[5] = baseIndex + 3;
+
+	renderCmds_p->vertexCount += 4;
+	renderCmds_p->indexCount += 6;
+}
+
+void PushLine(Renderer* renderer_p, Vector2 startPos, Vector2 endPos, Vector3 color, float thickness)
+{
+	RenderGroup* rendGrp_p = FindRenderGroup(renderer_p, RENDER_GROUP_WIREFRAME);
+	assert(rendGrp_p);
+
+	RenderCommands* renderCmds_p = &rendGrp_p->renderCommands;
+	assert(renderCmds_p->vertexCount < renderCmds_p->maxVertexCount);
+	assert(renderCmds_p->indexCount < renderCmds_p->maxIndexCount);
+
+	Vector2 v = Normalize(endPos - startPos);
+	Vector2 MaxXMaxY = endPos   + thickness * RotateDeg(v, +90);
+	Vector2 MaxXMinY = endPos   + thickness * RotateDeg(v, -90);
+	Vector2 MinXMinY = startPos + thickness * RotateDeg(-1 * v, +90);
+	Vector2 MinXMaxY = startPos + thickness * RotateDeg(-1 * v, -90);
+
+	ColoredVertex* vert_p = &renderCmds_p->onlyColoredVertexArray[renderCmds_p->vertexCount];
 	vert_p[0].pos = V3(MaxXMaxY);
 	vert_p[0].color = color;
 	vert_p[1].pos = V3(MaxXMinY);
@@ -212,7 +252,7 @@ static RenderGroup CreateRendererGroup(RenderGroupTypeE rendererGroupType, int s
 	rendGrp.renderCommands.vertexCount = 0;
 	if (onlyColored)
 	{
-		rendGrp.renderCommands.vertexOnlyColoredArray = (ColoredVertex*)malloc(maxQuads * 4 * sizeof(ColoredVertex));
+		rendGrp.renderCommands.onlyColoredVertexArray = (ColoredVertex*)malloc(maxQuads * 4 * sizeof(ColoredVertex));
 	}
 	else
 	{

@@ -36,7 +36,7 @@ struct RenderCommands
 	U32 maxVertexCount;
 	U32 vertexCount;
 	TexturedVertex* vertexArray;
-	ColoredVertex* vertexOnlyColoredArray;
+	ColoredVertex* onlyColoredVertexArray;
 
 	U32 maxIndexCount;
 	U32 indexCount;
@@ -68,4 +68,5 @@ void RendererInit(Renderer* renderer_p);
 void RendererEndFrame(Renderer* renderer_p);
 void PushSprite(Renderer* renderer_p, Vector2 pos, Vector2 size, Vector2 facingV, TextureHandleT textureHandle, Vector3 color = VECTOR3_ONE);
 void PushText(Renderer* renderer_p, const char* text, Vector2 pos, Vector3 color = VECTOR3_ONE);
-void PushRect(Renderer* renderer_p, Rect rect, Vector3 color);
+void PushRect(Renderer* renderer_p, Rect rect, Vector3 color, Vector2 facingV  = VECTOR2_UP);
+void PushLine(Renderer* renderer_p, Vector2 startPos, Vector2 endPos, Vector3 color, float thickness = 0.1f);

@@ -130,9 +130,15 @@ int main(void)
 
 	  bool quit = GameUpdateAndRender(GetDeltaT(), ScreenDim, &renderer);
 
-	  Rect rect = NewRect(-150 * VECTOR2_ONE, 300 * VECTOR2_ONE);
-	  PushRect(&renderer, rect, V3(0.0f, 1.0f, 0.0f));
-	  PushRect(&renderer, ExpandRect(rect, 50.0f), V3(0.0f, 1.0f, 0.0f));
+	  // @temp --->
+	  static Vector2 facingV = VECTOR2_UP;
+	  facingV = RotateDeg(facingV, -45 * GetDeltaT());
+	  Rect rect1 = NewRect(V2(100, 100), V2(100, 100));
+	  PushRect(&renderer, rect1, V3(1.0f, 1.0f, 0.0f));
+	  PushRect(&renderer, rect1, V3(0.0f, 1.0f, 0.0f), facingV);
+	  PushLine(&renderer, V2(-380,0), V2(380, 0), V3(0.5f, 0.5f, 0.5f));
+	  PushLine(&renderer, V2(0, -380), V2(0, 380), V3(0.5f, 0.5f, 0.5f));
+	  // <-- @temp
 
 	  OpenGLEndFrame(&openGl, &renderer, textures, ScreenDim);
 	  RendererEndFrame(&renderer);
