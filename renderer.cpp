@@ -4,18 +4,20 @@
 #include <glad/glad.h>
 #include <math.h>
 #include <stb_truetype.h>
+#include <stdlib.h>
 #include "common.h"
 #include "vector.h"
 #include "renderer.h"
 #include "opengl.h"
-#include <stdlib.h>
+#include "rect.h"
 
-#define MAX_SPRITE_QUADS  (1 << 8)
-#define MAX_TEXT_QUADS    (1 << 8)
+#define MAX_SPRITE_QUADS    (1 << 8)
+#define MAX_TEXT_QUADS      (1 << 8)
+#define MAX_WIREFRAME_QUADS (1 << 4)
 
 static U8 ttfBuffer[1 << 20];
 
-static RenderGroup CreateRendererGroup(RenderGroupTypeE rendererGroupType, int shaderProgram, int maxQuads);
+static RenderGroup CreateRendererGroup(RenderGroupTypeE rendererGroupType, int shaderProgram, int maxQuads, bool onlyColored = false);
 static RenderGroup* FindRenderGroup(Renderer* renderer_p, RenderGroupTypeE rendererGroupType);
 
 void RendererInit(Renderer* renderer_p)
@@ -26,15 +28,19 @@ void RendererInit(Renderer* renderer_p)
 	// Render groups
 	//
 
-	GLuint spriteShaderProgram = LoadAndCompileShaders("../shaders/vertex_shader.vs", "../shaders/sprites_shader.fs"); 
+	int spriteShaderProgram = LoadAndCompileShaders("../shaders/vertex_shader.vs", "../shaders/sprites_shader.fs"); 
 	assert(spriteShaderProgram >= 0);
 	renderer_p->renderGroups[0] = CreateRendererGroup(RENDER_GROUP_SPRITES_DEFAULT, spriteShaderProgram, MAX_SPRITE_QUADS);
 
-	GLuint textShaderProgram = LoadAndCompileShaders("../shaders/vertex_shader.vs", "../shaders/text_shader.fs"); 
+	int textShaderProgram = LoadAndCompileShaders("../shaders/vertex_shader.vs", "../shaders/text_shader.fs"); 
 	assert(textShaderProgram >= 0);
 	renderer_p->renderGroups[1] = CreateRendererGroup(RENDER_GROUP_TEXT_DEFAULT, textShaderProgram, MAX_TEXT_QUADS);
 
-	renderer_p->groupCnt = 2;
+	int wireframeShaderProgram = LoadAndCompileShaders("../shaders/vertex_shader.vs", "../shaders/wireframe_shader.fs");
+	assert(wireframeShaderProgram >= 0);
+	renderer_p->renderGroups[2] = CreateRendererGroup(RENDER_GROUP_WIREFRAME, wireframeShaderProgram, MAX_WIREFRAME_QUADS, true);
+
+	renderer_p->groupCnt = 3;
 
 	//
 	// Text Textures
@@ -156,18 +162,62 @@ void PushText(Renderer* renderer_p, const char* text, Vector2 pos, Vector3 color
 	}
 }
 
+void PushRect(Renderer* renderer_p, Rect rect, Vector3 color)
+{
+	RenderGroup* rendGrp_p = FindRenderGroup(renderer_p, RENDER_GROUP_WIREFRAME);
+	assert(rendGrp_p);
 
-static RenderGroup CreateRendererGroup(RenderGroupTypeE rendererGroupType, int shaderProgram, int maxQuads)
+	RenderCommands* renderCmds_p = &rendGrp_p->renderCommands;
+	assert(renderCmds_p->vertexCount < renderCmds_p->maxVertexCount);
+	assert(renderCmds_p->indexCount < renderCmds_p->maxIndexCount);
+
+	Vector2 MaxXMaxY = RectMaxXMaxY(rect);
+	Vector2 MaxXMinY = RectMaxXMinY(rect);
+	Vector2 MinXMinY = RectMinXMinY(rect);
+	Vector2 MinXMaxY = RectMinXMaxY(rect);
+
+	ColoredVertex* vert_p = &renderCmds_p->vertexOnlyColoredArray[renderCmds_p->vertexCount];
+	vert_p[0].pos = V3(MaxXMaxY);
+	vert_p[0].color = color;
+	vert_p[1].pos = V3(MaxXMinY);
+	vert_p[1].color = color;
+	vert_p[2].pos = V3(MinXMinY);
+	vert_p[2].color = color;
+	vert_p[3].pos = V3(MinXMaxY);
+	vert_p[3].color = color;
+
+	U16 baseIndex = renderCmds_p->vertexCount;
+	U16* index_p = &renderCmds_p->indexArray[renderCmds_p->indexCount];
+	index_p[0] = baseIndex + 0;
+	index_p[1] = baseIndex + 1;
+	index_p[2] = baseIndex + 3;
+	index_p[3] = baseIndex + 1;
+	index_p[4] = baseIndex + 2;
+	index_p[5] = baseIndex + 3;
+
+	renderCmds_p->vertexCount += 4;
+	renderCmds_p->indexCount += 6;
+}
+
+static RenderGroup CreateRendererGroup(RenderGroupTypeE rendererGroupType, int shaderProgram, int maxQuads, bool onlyColored)
 {
 	RenderGroup rendGrp = {0};
 	rendGrp.renderGroupType = rendererGroupType;
 	rendGrp.shaderProgram = shaderProgram;
-	rendGrp.renderCommands.maxVertexCount = maxQuads * 4;
-	rendGrp.renderCommands.vertexArray = (TexturedVertex*)malloc(maxQuads * 4 * sizeof(TexturedVertex));
-	rendGrp.renderCommands.vertexCount = 0;
 	rendGrp.renderCommands.maxIndexCount = maxQuads * 6;
 	rendGrp.renderCommands.indexArray = (U16*)malloc(maxQuads * 6 * sizeof(U32));
 	rendGrp.renderCommands.indexCount = 0;
+
+	rendGrp.renderCommands.maxVertexCount = maxQuads * 4;
+	rendGrp.renderCommands.vertexCount = 0;
+	if (onlyColored)
+	{
+		rendGrp.renderCommands.vertexOnlyColoredArray = (ColoredVertex*)malloc(maxQuads * 4 * sizeof(ColoredVertex));
+	}
+	else
+	{
+		rendGrp.renderCommands.vertexArray = (TexturedVertex*)malloc(maxQuads * 4 * sizeof(TexturedVertex));
+	}
 
 	return rendGrp;
 }

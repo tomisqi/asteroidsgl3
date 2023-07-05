@@ -103,7 +103,6 @@ static void Game(float deltaT, Vector2 screenDim, Renderer* renderer_p)
 	}
 
 	ship.pos += deltaT * ship.vel;
-
 	for (int i = 0; i < MAX_BULLETS; i++)
 	{
 		Entity* bullet_p = &bullets[i];
@@ -121,12 +120,9 @@ GAMEUPDATE_END:
 	for (int i = 0; i < MAX_BULLETS; i++)
 	{
 		Entity* bullet_p = &bullets[i];
-		if (bullet_p->enabled)
-		{
-			PushSprite(renderer_p, bullet_p->pos, 50.0f * VECTOR2_ONE, bullet_p->facingV, 1);
-		}
+		if (bullet_p->enabled)  PushSprite(renderer_p, bullet_p->pos, 50.0f * VECTOR2_ONE, bullet_p->facingV, 1);
 	}
-	if (ship.enabled)   PushSprite(renderer_p, ship.pos, 75.0f * VECTOR2_ONE, ship.facingV, 0);
+	if (ship.enabled) PushSprite(renderer_p, ship.pos, 75.0f * VECTOR2_ONE, ship.facingV, 0);
 
 	if (paused)
 	{
@@ -180,7 +176,7 @@ static void Settings()
 {
 	UILayout("Settings");
 	{
-		if (UIButton("Go Back", NewRect(VECTOR2_ZERO + V2(-120.0f, 100.0f), V2(250.0f, 50.0f))))
+		if (UIButton("Go Back", NewRect(VECTOR2_ZERO + V2(-120.0f, 100.0f), V2(250.0f, 50.0f))) || GameInput_ButtonDown(BUTTON_ESC))
 		{
 			printf("Go Back\n");
 			mainMenuScreen = MENU_MAIN;

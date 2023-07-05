@@ -106,5 +106,11 @@
     <None Include="..\shaders\vertex_shader.vs">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="..\shaders\wireframe_shader.fs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\shaders\wireframe_shader.vs">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

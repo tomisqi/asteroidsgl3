@@ -130,6 +130,10 @@ int main(void)
 
 	  bool quit = GameUpdateAndRender(GetDeltaT(), ScreenDim, &renderer);
 
+	  Rect rect = NewRect(-150 * VECTOR2_ONE, 300 * VECTOR2_ONE);
+	  PushRect(&renderer, rect, V3(0.0f, 1.0f, 0.0f));
+	  PushRect(&renderer, ExpandRect(rect, 50.0f), V3(0.0f, 1.0f, 0.0f));
+
 	  OpenGLEndFrame(&openGl, &renderer, textures, ScreenDim);
 	  RendererEndFrame(&renderer);
 	  glfwSwapBuffers(window);

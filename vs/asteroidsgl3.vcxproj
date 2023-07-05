@@ -152,9 +152,11 @@
     <ClInclude Include="..\vector.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\shaders\wireframe_shader.fs" />
     <None Include="..\shaders\sprites_shader.fs" />
     <None Include="..\shaders\text_shader.fs" />
     <None Include="..\shaders\vertex_shader.vs" />
+    <None Include="..\shaders\wireframe_shader.vs" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

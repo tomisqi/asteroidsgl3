@@ -113,8 +113,9 @@ void OpenGLInit(OpenGL* openGL_p)
 
 void OpenGLEndFrame(OpenGL* openGl_p, Renderer* renderer_p, Texture textures[], Vector2 screenDim)
 {
-	//glClearColor(0.0f, 0.0f, 0.1f, 1.0f);
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	//glClearColor(0.0f, 0.0f, 0.1f, 1.0f); 
+	//glClearColor(1.0f, 1.0f, 1.0f, 1.0f);   // White
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // Black
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	glEnable(GL_BLEND);
@@ -130,19 +131,20 @@ void OpenGLEndFrame(OpenGL* openGl_p, Renderer* renderer_p, Texture textures[], 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, openGl_p->EBO);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, renderCmds_p->indexCount * sizeof(U32), renderCmds_p->indexArray, GL_DYNAMIC_DRAW);
 
-		glBindBuffer(GL_ARRAY_BUFFER, openGl_p->VBO);
-		glBufferData(GL_ARRAY_BUFFER, renderCmds_p->vertexCount * sizeof(TexturedVertex), renderCmds_p->vertexArray, GL_DYNAMIC_DRAW);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(TexturedVertex), (void*)OFFSET_OF(TexturedVertex, pos)); // position attribute
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(TexturedVertex), (void*)OFFSET_OF(TexturedVertex, color)); // color attribute
-		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(TexturedVertex), (void*)OFFSET_OF(TexturedVertex, uv)); // uv attribute
-		glEnableVertexAttribArray(2);
 
 		switch (rendGrp_p->renderGroupType)
 		{
 		case RENDER_GROUP_SPRITES_DEFAULT:
 		{
+			glBindBuffer(GL_ARRAY_BUFFER, openGl_p->VBO);
+			glBufferData(GL_ARRAY_BUFFER, renderCmds_p->vertexCount * sizeof(TexturedVertex), renderCmds_p->vertexArray, GL_DYNAMIC_DRAW);
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(TexturedVertex), (void*)OFFSET_OF(TexturedVertex, pos)); // position attribute
+			glEnableVertexAttribArray(0);
+			glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(TexturedVertex), (void*)OFFSET_OF(TexturedVertex, color)); // color attribute
+			glEnableVertexAttribArray(1);
+			glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(TexturedVertex), (void*)OFFSET_OF(TexturedVertex, uv)); // uv attribute
+			glEnableVertexAttribArray(2);
+
 			// Matrix transform
 			glm::mat4 transMatrix = glm::mat4(1.0f);
 			transMatrix = glm::scale(transMatrix, glm::vec3(2.0f / screenDim.x, 2.0f / screenDim.y, 1.0f));
@@ -164,14 +166,24 @@ void OpenGLEndFrame(OpenGL* openGl_p, Renderer* renderer_p, Texture textures[], 
 				}
 				//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 				glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (GLvoid*)(indexIndex * sizeof(U16)), 0);
+				//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 				indexIndex += 6;
 			}
 		}
-			break;
+		break;
 		case RENDER_GROUP_TEXT_DEFAULT:
 		{
+			glBindBuffer(GL_ARRAY_BUFFER, openGl_p->VBO);
+			glBufferData(GL_ARRAY_BUFFER, renderCmds_p->vertexCount * sizeof(TexturedVertex), renderCmds_p->vertexArray, GL_DYNAMIC_DRAW);
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(TexturedVertex), (void*)OFFSET_OF(TexturedVertex, pos)); // position attribute
+			glEnableVertexAttribArray(0);
+			glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(TexturedVertex), (void*)OFFSET_OF(TexturedVertex, color)); // color attribute
+			glEnableVertexAttribArray(1);
+			glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(TexturedVertex), (void*)OFFSET_OF(TexturedVertex, uv)); // uv attribute
+			glEnableVertexAttribArray(2);
+
 			// Matrix transform
-			// Note: Use a negative in the Y transform given how stb builds the quad.
+			// Note: Using a negative in the Y transform given how stb builds the quad.
 			glm::mat4 transMatrix = glm::mat4(1.0f);
 			transMatrix = glm::scale(transMatrix, glm::vec3(2.0f / screenDim.x, (-1) * 2.0f / screenDim.y, 1.0f));
 			unsigned int transformLoc = glGetUniformLocation(rendGrp_p->shaderProgram, "transform");
@@ -187,13 +199,40 @@ void OpenGLEndFrame(OpenGL* openGl_p, Renderer* renderer_p, Texture textures[], 
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, textTexture_p->width, textTexture_p->height, 0, GL_RED, GL_UNSIGNED_BYTE, textTexture_p->data_p);
 				//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 				glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (GLvoid*)(indexIndex * sizeof(U16)), 0);
+				//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 				indexIndex += 6;
 			}
 		}
-			break;
+		break;
+		case RENDER_GROUP_WIREFRAME:
+		{
+			glBindBuffer(GL_ARRAY_BUFFER, openGl_p->VBO);
+			glBufferData(GL_ARRAY_BUFFER, renderCmds_p->vertexCount * sizeof(ColoredVertex), renderCmds_p->vertexOnlyColoredArray, GL_DYNAMIC_DRAW);
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ColoredVertex), (void*)OFFSET_OF(ColoredVertex, pos)); // position attribute
+			glEnableVertexAttribArray(0);
+			glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(ColoredVertex), (void*)OFFSET_OF(ColoredVertex, color)); // color attribute
+			glEnableVertexAttribArray(1);
+
+			// Matrix transform
+			glm::mat4 transMatrix = glm::mat4(1.0f);
+			transMatrix = glm::scale(transMatrix, glm::vec3(2.0f / screenDim.x, 2.0f / screenDim.y, 1.0f));
+			unsigned int transformLoc = glGetUniformLocation(rendGrp_p->shaderProgram, "transform");
+			glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transMatrix));
+
+			int quadCount = renderCmds_p->vertexCount / 4;
+			int indexIndex = 0;
+			for (int quadIndex = 0; quadIndex < quadCount; quadIndex++)
+			{
+				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+				glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (GLvoid*)(indexIndex * sizeof(U16)), 0);
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+				indexIndex += 6;
+			}
+		}
+		break;
 		default:
 			assert(false);
-			break;
+		break;
 		};
 
 

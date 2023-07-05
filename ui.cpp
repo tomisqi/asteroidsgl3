@@ -61,10 +61,6 @@ void UIInit(Renderer* renderer_p)
 
 void UINewFrame(Vector2 mousePosScreen, bool mouseIsPressed, Vector2 screenDim)
 {
-	// MousePosScreen comes as (0,0) to (screnDim.x, screenDim.y). Transform into worldPos
-	Vector2 prevMousePos = ui.mouse.pos;
-	ui.mouse.pos = V2(mousePosScreen.x - screenDim.x / 2, screenDim.y / 2 - mousePosScreen.y );
-
 	MouseStateE prevState = ui.mouse.state;
 	ui.mouse.state = MOUSE_RELEASED;
 	if (mouseIsPressed)
@@ -76,7 +72,11 @@ void UINewFrame(Vector2 mousePosScreen, bool mouseIsPressed, Vector2 screenDim)
 		}
 	}
 
+	// MousePosScreen comes as (0,0) to (screnDim.x, screenDim.y). Transform into worldPos
+	Vector2 prevMousePos = ui.mouse.pos;
+	ui.mouse.pos = V2(mousePosScreen.x - screenDim.x / 2, screenDim.y / 2 - mousePosScreen.y);
 	bool mouseMoved = (prevMousePos != ui.mouse.pos);
+
 	for (int i = 0; i < MAX_LAYOUTS; i++)
 	{
 		if (ui.layouts[i].layoutActive)
