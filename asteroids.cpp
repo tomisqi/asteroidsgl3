@@ -6,14 +6,22 @@
 #include "ui.h"
 
 #define SHIP_ROTATION_SPEED 360 * 1.5f // Degrees per second.
-#define SHIP_SPEED          20.0f
+#define SHIP_ACCELERATION   1000.0f
 #define BULLET_SPEED        800.0f
+#define MAX_BULLETS         10
 
 enum SceneE : U8
 {
 	SCENE_NONE,
 	SCENE_MAIN_MENU,
 	SCENE_GAME,
+};
+
+enum MenuScreenE: U8
+{
+	MENU_NONE,
+	MENU_MAIN,
+	MENU_SETTINGS,
 };
 
 struct Entity
@@ -26,30 +34,31 @@ struct Entity
 
 static SceneE scene;
 static Entity ship;
-static Entity bullet;
+static Entity bullets[MAX_BULLETS];
+static int bulletIdx;
 static bool paused;
+static MenuScreenE mainMenuScreen;
 
 void GameInit()
+{
+	scene = SCENE_MAIN_MENU;
+	mainMenuScreen = MENU_MAIN;
+}
+
+static void GameStart()
 {
 	memset(&ship, 0, sizeof(ship));
 	ship.facingV = VECTOR2_UP;
 	ship.enabled = true;
 
-	memset(&bullet, 0, sizeof(bullet));
-	bullet.facingV = VECTOR2_UP;
+	memset(&bullets, 0, sizeof(bullets));
+	for (int i = 0; i < MAX_BULLETS; i++) bullets[i].facingV = VECTOR2_UP;
 
 	paused = false;
-
-	scene = SCENE_MAIN_MENU;
 }
 
 static void Game(float deltaT, Vector2 screenDim, Renderer* renderer_p)
 {
-	if (GameInput_ButtonDown(BUTTON_ESC))
-	{
-		paused = !paused;
-	}
-
 	if (paused) goto GAMEUPDATE_END;
 
 	if (GameInput_Button(BUTTON_RIGHT_ARROW))
@@ -62,38 +71,44 @@ static void Game(float deltaT, Vector2 screenDim, Renderer* renderer_p)
 	}
 	if (GameInput_Button(BUTTON_UP_ARROW))
 	{
-		float speed = SHIP_SPEED;
+		float acceleration = SHIP_ACCELERATION;
 		if (GameInput_Button(BUTTON_LSHIFT))
 		{
-			speed *= 2.0f;
+			acceleration *= 2.0f;
 		}
-		ship.vel += speed * ship.facingV;
+		ship.vel += acceleration * deltaT * Normalize(ship.facingV);
 	}
 	else
 	{
-		ship.vel = 0.95f * ship.vel;
+		ship.vel = 0.97f * ship.vel;
 	}
 
 	if (GameInput_ButtonDown(BUTTON_X))
 	{
-		bullet.pos = ship.pos;
-		bullet.facingV = ship.facingV;
-		bullet.vel = ship.vel + BULLET_SPEED * Normalize(ship.facingV);
-		bullet.enabled = true;
+		Entity* bullet_p = &bullets[(bulletIdx++) % MAX_BULLETS];
+		bullet_p->pos = ship.pos;
+		bullet_p->facingV = ship.facingV;
+		bullet_p->vel = ship.vel + BULLET_SPEED * Normalize(ship.facingV);
+		bullet_p->enabled = true;
 	}
 	if (GameInput_Button(BUTTON_A))
 	{
 		Vector2 leftFacingV = RotateDeg(ship.facingV, 90);
-		ship.vel += 2 * SHIP_SPEED * leftFacingV;
+		ship.vel += 2 * 20.0f * leftFacingV;
 	}
 	if (GameInput_Button(BUTTON_D))
 	{
 		Vector2 rightFacingV = RotateDeg(ship.facingV, -90);
-		ship.vel += 2 * SHIP_SPEED * rightFacingV;
+		ship.vel += 2 * 20.0f * rightFacingV;
 	}
 
 	ship.pos += deltaT * ship.vel;
-	bullet.pos += deltaT * bullet.vel;
+
+	for (int i = 0; i < MAX_BULLETS; i++)
+	{
+		Entity* bullet_p = &bullets[i];
+		bullet_p->pos += deltaT * bullet_p->vel;
+	}
 
 	// Wrap around
 	if (ship.pos.x > screenDim.x / 2.0f) ship.pos.x = -screenDim.x / 2.0f;
@@ -103,33 +118,90 @@ static void Game(float deltaT, Vector2 screenDim, Renderer* renderer_p)
 
 GAMEUPDATE_END:
 
-	if (bullet.enabled) PushSprite(renderer_p, bullet.pos, 50.0f * VECTOR2_ONE, bullet.facingV, 1);
+	for (int i = 0; i < MAX_BULLETS; i++)
+	{
+		Entity* bullet_p = &bullets[i];
+		if (bullet_p->enabled)
+		{
+			PushSprite(renderer_p, bullet_p->pos, 50.0f * VECTOR2_ONE, bullet_p->facingV, 1);
+		}
+	}
 	if (ship.enabled)   PushSprite(renderer_p, ship.pos, 75.0f * VECTOR2_ONE, ship.facingV, 0);
 
 	if (paused)
 	{
-		if (Button("Continue", NewRect(VECTOR2_ZERO + V2(-120.0f, 100.0f), V2(250.0f, 50.0f))))
+		UILayout("PausedMenu");
 		{
-			paused = false;
+			if (UIButton("Continue", NewRect(VECTOR2_ZERO + V2(-120.0f, 100.0f), V2(250.0f, 50.0f))))
+			{
+				printf("Continue\n");
+				paused = false;
+			}
+			if (UIButton("Main Menu", NewRect(VECTOR2_ZERO + V2(-120.0f, 0.0f), V2(250.0f, 50.0f))))
+			{
+				printf("Main Menu\n");
+				scene = SCENE_MAIN_MENU;
+			}
 		}
-		if (Button("Main Menu", NewRect(VECTOR2_ZERO + V2(-120.0f, 0.0f), V2(250.0f, 50.0f))))
+	}
+
+	if (GameInput_ButtonDown(BUTTON_ESC))
+	{
+		paused = !paused;
+	}
+}
+
+static bool MainMenuMain()
+{
+	bool quitGame = false;
+	UILayout("MainMenu");
+	{
+		if (UIButton("Start Game", NewRect(VECTOR2_ZERO + V2(-120.0f, 100.0f), V2(250.0f, 50.0f))))
 		{
-			GameInit();
-			scene = SCENE_MAIN_MENU;
+			printf("Start Game\n");
+			GameStart();
+			scene = SCENE_GAME;
+		}
+		if (UIButton("Settings", NewRect(VECTOR2_ZERO + V2(-120.0f, 0.0f), V2(250.0f, 50.0f))))
+		{
+			printf("Settings\n");
+			mainMenuScreen = MENU_SETTINGS;
+		}
+		if (UIButton("Quit Game", NewRect(VECTOR2_ZERO + V2(-120.0f, -100.0f), V2(250.0f, 50.0f))))
+		{
+			printf("Quit Game\n");
+			quitGame = true;
+		}
+	}
+	return quitGame;
+}
+
+static void Settings()
+{
+	UILayout("Settings");
+	{
+		if (UIButton("Go Back", NewRect(VECTOR2_ZERO + V2(-120.0f, 100.0f), V2(250.0f, 50.0f))))
+		{
+			printf("Go Back\n");
+			mainMenuScreen = MENU_MAIN;
 		}
 	}
 }
 
-static bool MainMenu(Renderer* renderer_p)
+static bool MainMenu()
 {
 	bool quitGame = false;
-	if (Button("Start Game", NewRect(VECTOR2_ZERO + V2(-120.0f, 100.0f), V2(250.0f, 50.0f))))
+	switch (mainMenuScreen)
 	{
-		scene = SCENE_GAME;
-	}
-	if (Button("Quit Game", NewRect(VECTOR2_ZERO + V2(-120.0f, 0.0f), V2(250.0f, 50.0f))))
-	{
-		quitGame = true;
+	case MENU_MAIN:
+		quitGame = MainMenuMain();
+		break;
+	case MENU_SETTINGS:
+		Settings();
+		break;
+	case NONE:
+	default:
+		break;
 	}
 	return quitGame;
 }
@@ -140,7 +212,7 @@ bool GameUpdateAndRender(float deltaT, Vector2 screenDim, Renderer* renderer_p)
 	switch (scene)
 	{
 	case SCENE_MAIN_MENU:
-		quitGame = MainMenu(renderer_p);
+		quitGame = MainMenu();
 		break;
 	case SCENE_GAME:
 		Game(deltaT, screenDim, renderer_p);

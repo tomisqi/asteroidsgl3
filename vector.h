@@ -88,6 +88,11 @@ static inline bool operator==(Vector2 a, Vector2 b)
 	return (a.x == b.x) && (a.y == b.y);
 }
 
+static inline bool operator!=(Vector2 a, Vector2 b)
+{
+	return (a.x != b.x) || (a.y != b.y);
+}
+
 static inline Vector2 Scale(Vector2 a, Vector2 b)
 {
 	return V2(a.x*b.x, a.y*b.y);

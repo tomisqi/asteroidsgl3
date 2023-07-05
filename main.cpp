@@ -6,6 +6,7 @@
 // [ ] Collisions
 // [ ] Animations
 // [ ] Particle system
+// [ ] Camera
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,7 +28,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-Vector2 ScreenDim = V2(800, 800);
+Vector2 ScreenDim = V2(800,800);
 
 static void GlfwErrorCallback(int error, const char* description)
 {
@@ -113,7 +114,7 @@ int main(void)
 	ButtonState buttonStates[MAX_BUTTONS];
 	glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
 
-	UI_Init(&renderer);
+	UIInit(&renderer);
 	GameInit();
 	while (!glfwWindowShouldClose(window))
 	{
@@ -125,7 +126,7 @@ int main(void)
 
 	  double mouseXpos, mouseYpos;
 	  glfwGetCursorPos(window, &mouseXpos, &mouseYpos);
-	  UI_NewFrame(V2(mouseXpos, mouseYpos), glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS, ScreenDim);
+	  UINewFrame(V2(mouseXpos, mouseYpos), glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS, ScreenDim);
 
 	  bool quit = GameUpdateAndRender(GetDeltaT(), ScreenDim, &renderer);
 

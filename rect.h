@@ -22,3 +22,8 @@ static bool RectContains(Rect rect, Vector2 pos)
 
 	return pos.x >= xMin && pos.x <= xMax && pos.y >= yMin && pos.y <= yMax;
 }
+
+static Vector2 GetRectCenter(Rect rect)
+{
+	return V2(rect.pos.x + rect.size.x / 2, rect.pos.y + rect.size.y / 2);
+}

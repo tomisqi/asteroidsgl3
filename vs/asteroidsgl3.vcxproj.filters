@@ -92,6 +92,9 @@
     <ClInclude Include="..\ui.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\hash.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\shaders\sprites_shader.fs">

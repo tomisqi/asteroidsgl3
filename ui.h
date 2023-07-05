@@ -11,8 +11,10 @@ enum MouseStateE : U8
 	MOUSE_PRESSED_HOLD,
 };
 
-void UI_Init(Renderer* renderer_p);
+void UIInit(Renderer* renderer_p);
 
-void UI_NewFrame(Vector2 mousePosScreen, bool mouseIsPressed, Vector2 screenDim);
+void UINewFrame(Vector2 mousePosScreen, bool mouseIsPressed, Vector2 screenDim);
 
-bool Button(const char* text, Rect rect);
+bool UIButton(const char* text, Rect rect);
+
+void UILayout(const char* name);

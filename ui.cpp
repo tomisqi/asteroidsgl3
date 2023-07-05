@@ -1,10 +1,23 @@
 #include <string.h>
+#include <assert.h>
 #include "vector.h"
 #include "rect.h"
 #include "renderer.h"
 #include "common.h"
 #include "ui.h"
 #include "stdio.h"
+#include "hash.h"
+#include "input.h"
+
+#define MAX_LAYOUTS 256
+
+enum UIDirectionE : U8
+{
+	UI_DOWN,
+	UI_LEFT,
+	UI_UP,
+	UI_RIGHT,
+};
 
 struct Mouse
 {
@@ -12,24 +25,45 @@ struct Mouse
 	Vector2 pos;
 };
 
+struct LayoutData
+{
+	bool layoutActive;
+	bool layoutDone;
+	S16 buttonIdx;
+	int buttonsCount;
+
+	S16 highlightedButtonIdx;
+	bool highlightedButtonConfirm;
+};
+
 struct UiContext
 {
 	Mouse mouse;
 	Renderer* renderer_p;
+
+	S64 activeLayoutId;
+	LayoutData layouts[MAX_LAYOUTS];
 };
 
 static UiContext ui;
 
-void UI_Init(Renderer* renderer_p)
+void UIInit(Renderer* renderer_p)
 {
 	memset(&ui, 0, sizeof(ui));
 	ui.renderer_p = renderer_p;
+	ui.activeLayoutId = S64_MAX;
+
+	for (int i = 0; i < MAX_LAYOUTS; i++)
+	{
+		ui.layouts[i].highlightedButtonIdx = -1;
+	}
 }
 
-void UI_NewFrame(Vector2 mousePosScreen, bool mouseIsPressed, Vector2 screenDim)
+void UINewFrame(Vector2 mousePosScreen, bool mouseIsPressed, Vector2 screenDim)
 {
 	// MousePosScreen comes as (0,0) to (screnDim.x, screenDim.y). Transform into worldPos
-	ui.mouse.pos = V2(mousePosScreen.x - screenDim.x / 2, screenDim.x / 2 - mousePosScreen.y );
+	Vector2 prevMousePos = ui.mouse.pos;
+	ui.mouse.pos = V2(mousePosScreen.x - screenDim.x / 2, screenDim.y / 2 - mousePosScreen.y );
 
 	MouseStateE prevState = ui.mouse.state;
 	ui.mouse.state = MOUSE_RELEASED;
@@ -39,6 +73,21 @@ void UI_NewFrame(Vector2 mousePosScreen, bool mouseIsPressed, Vector2 screenDim)
 		if (prevState == MOUSE_RELEASED)
 		{
 			ui.mouse.state = MOUSE_PRESSED;
+		}
+	}
+
+	bool mouseMoved = (prevMousePos != ui.mouse.pos);
+	for (int i = 0; i < MAX_LAYOUTS; i++)
+	{
+		if (ui.layouts[i].layoutActive)
+		{
+			ui.layouts[i].layoutDone = true;
+			ui.layouts[i].buttonIdx = 0;
+			ui.layouts[i].highlightedButtonConfirm = false;
+
+			S16 prevHighlight = ui.layouts[i].highlightedButtonIdx;
+			ui.layouts[i].highlightedButtonIdx = -1;
+			if (!mouseMoved) ui.layouts[i].highlightedButtonIdx = prevHighlight; // If mouse hasn't moved, keep the prev highlight.
 		}
 	}
 
@@ -55,19 +104,68 @@ void UI_NewFrame(Vector2 mousePosScreen, bool mouseIsPressed, Vector2 screenDim)
 #endif
 }
 
-bool Button(const char* text, Rect rect)
+static void UIMoveInLayout(LayoutData* layout_p, UIDirectionE direction)
 {
-	Vector2 centerPos = V2(rect.pos.x + rect.size.x / 2, rect.pos.y + rect.size.y / 2);	
+	if (direction == UI_DOWN) layout_p->highlightedButtonIdx += 1;
+	if (direction == UI_UP)   layout_p->highlightedButtonIdx -= 1;
+
+	if (layout_p->highlightedButtonIdx >= layout_p->buttonsCount) layout_p->highlightedButtonIdx = 0;
+	if (layout_p->highlightedButtonIdx < 0)                       layout_p->highlightedButtonIdx = layout_p->buttonsCount - 1;
+}
+
+void UILayout(const char* name)
+{
+	S64 id = HashString((const unsigned char*)name); // @todo: Check for collisions.
+	ui.activeLayoutId = id;
+
+	LayoutData* layout_p = &ui.layouts[id % MAX_LAYOUTS];
+	layout_p->layoutActive = true;
+
+	if (!layout_p->layoutDone) return;
+
+	if (ui.mouse.state == MOUSE_PRESSED || GameInput_ButtonDown(BUTTON_ENTER))
+	{
+		layout_p->highlightedButtonConfirm = true;
+	}
+
+	if (GameInput_ButtonDown(BUTTON_DOWN_ARROW))  UIMoveInLayout(layout_p, UI_DOWN);
+	if (GameInput_ButtonDown(BUTTON_UP_ARROW))    UIMoveInLayout(layout_p, UI_UP);
+}
+
+bool UIButton(const char* text, Rect rect)
+{
+	assert(ui.activeLayoutId != S64_MAX);
+
+    LayoutData* layout_p = &ui.layouts[ui.activeLayoutId % MAX_LAYOUTS]; 
+	if (!layout_p->layoutDone)
+	{
+		// We're still discovering the layout. We need a full frame to do that.
+		layout_p->buttonsCount++;
+		return false;
+	}
+	
+	S16 buttonIdx = layout_p->buttonIdx++;
+
 	if (RectContains(rect, ui.mouse.pos))
 	{
-		PushSprite(ui.renderer_p, centerPos, rect.size, VECTOR2_UP, 3, V3(0,0,1)); // Blue
-		PushText(ui.renderer_p, text, V2(centerPos.x - rect.size.x / 4 + 20.0f, -centerPos.y), VECTOR3_ONE);
-		if (ui.mouse.state == MOUSE_PRESSED) return true;
+		layout_p->highlightedButtonIdx = buttonIdx;
+	}
+
+	Vector2 rectCenterPos = GetRectCenter(rect);
+	if (layout_p->highlightedButtonIdx == buttonIdx)
+	{
+		PushSprite(ui.renderer_p, rectCenterPos, rect.size, VECTOR2_UP, 3, V3(0, 0, 1)); // Blue
+		PushText(ui.renderer_p, text, V2(rectCenterPos.x - rect.size.x / 4 + 20.0f, -rectCenterPos.y), VECTOR3_ONE);
+		if (layout_p->highlightedButtonConfirm) return true;
 	}
 	else
 	{
-		PushSprite(ui.renderer_p, centerPos, rect.size, VECTOR2_UP, 3);
-		PushText(ui.renderer_p, text, V2(centerPos.x - rect.size.x / 4 + 20.0f, -centerPos.y), VECTOR3_ZERO);
+		PushSprite(ui.renderer_p, rectCenterPos, rect.size, VECTOR2_UP, 3);
+		PushText(ui.renderer_p, text, V2(rectCenterPos.x - rect.size.x / 4 + 20.0f, -rectCenterPos.y), VECTOR3_ZERO);
 	}
+
+	// If this is the last button, reset the activeLayoutId to make sure other buttons are part of another layout.
+	if (layout_p->buttonIdx == layout_p->buttonsCount) ui.activeLayoutId = S64_MAX;
+
 	return false;
 }
