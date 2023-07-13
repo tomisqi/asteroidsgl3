@@ -2,6 +2,7 @@
 // [x] Coordinate system
 // [x] Text rendering
 // [x] Mouse support
+// [x] UI
 // [ ] Audio
 // [ ] Collisions
 // [ ] Animations
@@ -95,13 +96,15 @@ int main(void)
 		return -1;
 	}
 
+
 	srand(time(NULL)); // Initialize random seed
 
-	Texture textures[4] = { 0 };
-	textures[0] = LoadTexture("../assets/textures/spacecraft.png");	
+	Texture textures[5] = { 0 };
+	textures[0] = LoadTexture("../assets/textures/Spacecraft.png");	
 	textures[1] = LoadTexture("../assets/textures/RedShot.png");
 	textures[2] = LoadTexture("../assets/textures/ELI.png");
 	textures[3] = LoadTexture("../assets/textures/InternalTileDev.png");
+	textures[4] = LoadTexture("../assets/textures/Asteroid.png");
 
 	OpenGL openGl;
 	OpenGLInit(&openGl);
@@ -132,13 +135,23 @@ int main(void)
 
 	  // @temp --->
 	  static Vector2 facingV = VECTOR2_UP;
-	  facingV = RotateDeg(facingV, -45 * GetDeltaT());
-	  Rect rect1 = NewRect(V2(100, 100), V2(100, 100));
-	  PushRect(&renderer, rect1, V3(1.0f, 1.0f, 0.0f));
-	  PushRect(&renderer, rect1, V3(0.0f, 1.0f, 0.0f), facingV);
-	  PushLine(&renderer, V2(-380,0), V2(380, 0), V3(0.5f, 0.5f, 0.5f));
-	  PushLine(&renderer, V2(0, -380), V2(0, 380), V3(0.5f, 0.5f, 0.5f));
+	  facingV = RotateDeg(facingV, -90 * GetDeltaT());
+	  Rect rect1 = NewRect(V2(300, 300), V2(100, 100));
+	  PushRect(&renderer, rect1, V3(0.0f, 1.0f, 0.0f));
+	  PushRect(&renderer, rect1, V3(1.0f, 1.0f, 0.0f), facingV);
+	  Rect rect2 = NewRect(V2(300, -400), V2(100, 100));
+	  PushRect(&renderer, rect2, V3(1.0f, 1.0f, 0.0f));
+	  PushRect(&renderer, rect2, V3(0.0f, 1.0f, 0.0f), facingV);
+	  Rect rect3 = NewRect(V2(-400, -400), V2(100, 100));
+	  PushRect(&renderer, rect3, V3(0.0f, 1.0f, 0.0f));
+	  PushRect(&renderer, rect3, V3(1.0f, 1.0f, 0.0f), facingV);
+	  Rect rect4 = NewRect(V2(-400, 300), V2(100, 100));
+	  PushRect(&renderer, rect4, V3(1.0f, 1.0f, 0.0f));
+	  PushRect(&renderer, rect4, V3(0.0f, 1.0f, 0.0f), facingV);
 	  // <-- @temp
+
+	  //U64 i = __rdtsc();
+	  //printf_s("%I64d ticks\n", i);
 
 	  OpenGLEndFrame(&openGl, &renderer, textures, ScreenDim);
 	  RendererEndFrame(&renderer);

@@ -36,7 +36,7 @@ void RendererInit(Renderer* renderer_p)
 	assert(textShaderProgram >= 0);
 	renderer_p->renderGroups[1] = CreateRendererGroup(RENDER_GROUP_TEXT_DEFAULT, textShaderProgram, MAX_TEXT_QUADS);
 
-	int wireframeShaderProgram = LoadAndCompileShaders("../shaders/vertex_shader.vs", "../shaders/wireframe_shader.fs");
+	int wireframeShaderProgram = LoadAndCompileShaders("../shaders/wireframe_shader.vs", "../shaders/wireframe_shader.fs");
 	assert(wireframeShaderProgram >= 0);
 	renderer_p->renderGroups[2] = CreateRendererGroup(RENDER_GROUP_WIREFRAME, wireframeShaderProgram, MAX_WIREFRAME_QUADS, true);
 
