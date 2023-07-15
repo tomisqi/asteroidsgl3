@@ -13,7 +13,7 @@
 
 #define MAX_SPRITE_QUADS    (1 << 8)
 #define MAX_TEXT_QUADS      (1 << 8)
-#define MAX_WIREFRAME_QUADS (1 << 4)
+#define MAX_WIREFRAME_QUADS (1 << 10)
 
 static U8 ttfBuffer[1 << 20];
 
@@ -180,13 +180,13 @@ void PushRect(Renderer* renderer_p, Rect rect, Vector3 color, Vector2 facingV)
 
 	ColoredVertex* vert_p = &renderCmds_p->onlyColoredVertexArray[renderCmds_p->vertexCount];
 	vert_p[0].pos = V3(MaxXMaxY);
-	vert_p[0].color = color;
+	vert_p[0].color = V4(color);
 	vert_p[1].pos = V3(MaxXMinY);
-	vert_p[1].color = color;
+	vert_p[1].color = V4(color);
 	vert_p[2].pos = V3(MinXMinY);
-	vert_p[2].color = color;
+	vert_p[2].color = V4(color); 
 	vert_p[3].pos = V3(MinXMaxY);
-	vert_p[3].color = color;
+	vert_p[3].color = V4(color); 
 
 	U16 baseIndex = renderCmds_p->vertexCount;
 	U16* index_p = &renderCmds_p->indexArray[renderCmds_p->indexCount];
@@ -218,13 +218,13 @@ void PushLine(Renderer* renderer_p, Vector2 startPos, Vector2 endPos, Vector3 co
 
 	ColoredVertex* vert_p = &renderCmds_p->onlyColoredVertexArray[renderCmds_p->vertexCount];
 	vert_p[0].pos = V3(MaxXMaxY);
-	vert_p[0].color = color;
+	vert_p[0].color = V4(color); 
 	vert_p[1].pos = V3(MaxXMinY);
-	vert_p[1].color = color;
+	vert_p[1].color = V4(color); 
 	vert_p[2].pos = V3(MinXMinY);
-	vert_p[2].color = color;
+	vert_p[2].color = V4(color); 
 	vert_p[3].pos = V3(MinXMaxY);
-	vert_p[3].color = color;
+	vert_p[3].color = V4(color); 
 
 	U16 baseIndex = renderCmds_p->vertexCount;
 	U16* index_p = &renderCmds_p->indexArray[renderCmds_p->indexCount];
@@ -237,6 +237,43 @@ void PushLine(Renderer* renderer_p, Vector2 startPos, Vector2 endPos, Vector3 co
 
 	renderCmds_p->vertexCount += 4;
 	renderCmds_p->indexCount += 6;
+}
+
+void PushCircle(Renderer* renderer_p, Vector2 centerPos, float radius, Vector3 color, int edges)
+{
+	RenderGroup* rendGrp_p = FindRenderGroup(renderer_p, RENDER_GROUP_WIREFRAME);
+	assert(rendGrp_p);
+
+	RenderCommands* renderCmds_p = &rendGrp_p->renderCommands;
+
+	float deltaAngle = 360.0f/edges;
+	Vector2 radialV = VECTOR2_RIGHT;
+	for (int i = 0; i < edges; i++)
+	{
+		assert(renderCmds_p->vertexCount < renderCmds_p->maxVertexCount);
+		assert(renderCmds_p->indexCount < renderCmds_p->maxIndexCount);
+
+		Vector2 pos1 = centerPos + radius * radialV;
+		radialV = RotateDeg(radialV, deltaAngle);
+		Vector2 pos2 = centerPos + radius * radialV;
+
+		ColoredVertex* vert_p = &renderCmds_p->onlyColoredVertexArray[renderCmds_p->vertexCount];
+		vert_p[0].pos = V3(centerPos);
+		vert_p[0].color = V4(color, 0.0f);
+		vert_p[1].pos = V3(pos1);
+		vert_p[1].color = V4(color, 1.0f);
+		vert_p[2].pos = V3(pos2);
+		vert_p[2].color = V4(color, 1.0f);
+
+		U16 baseIndex = renderCmds_p->vertexCount;
+		U16* index_p = &renderCmds_p->indexArray[renderCmds_p->indexCount];
+		index_p[0] = baseIndex + 0;
+		index_p[1] = baseIndex + 1;
+		index_p[2] = baseIndex + 2;
+
+		renderCmds_p->vertexCount += 3;
+		renderCmds_p->indexCount += 3;
+	}
 }
 
 static RenderGroup CreateRendererGroup(RenderGroupTypeE rendererGroupType, int shaderProgram, int maxQuads, bool onlyColored)

@@ -28,7 +28,7 @@ struct TexturedVertex
 struct ColoredVertex
 {
 	Vector3 pos;
-	Vector3 color;
+	Vector4 color;
 };
 
 struct RenderCommands
@@ -70,3 +70,4 @@ void PushSprite(Renderer* renderer_p, Vector2 pos, Vector2 size, Vector2 facingV
 void PushText(Renderer* renderer_p, const char* text, Vector2 pos, Vector3 color = VECTOR3_ONE);
 void PushRect(Renderer* renderer_p, Rect rect, Vector3 color, Vector2 facingV  = VECTOR2_UP);
 void PushLine(Renderer* renderer_p, Vector2 startPos, Vector2 endPos, Vector3 color, float thickness = 0.1f);
+void PushCircle(Renderer* renderer_p, Vector2 centerPos, float radius, Vector3 color, int edges = 16);

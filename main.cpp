@@ -148,6 +148,7 @@ int main(void)
 	  Rect rect4 = NewRect(V2(-400, 300), V2(100, 100));
 	  PushRect(&renderer, rect4, V3(1.0f, 1.0f, 0.0f));
 	  PushRect(&renderer, rect4, V3(0.0f, 1.0f, 0.0f), facingV);
+	  //PushCircle(&renderer, 100.0f*VECTOR2_ONE, 100.0f, V3(1, 1, 1));
 	  // <-- @temp
 
 	  //U64 i = __rdtsc();

@@ -12,6 +12,8 @@
 
 #define VECTOR3_ZERO	V3(0.0f, 0.0f, 0.0f)
 #define VECTOR3_ONE	    V3(1.0f, 1.0f, 1.0f)
+#define VECTOR4_ZERO	V4(0.0f, 0.0f, 0.0f, 0.0f)
+#define VECTOR4_ONE	    V4(1.0f, 1.0f, 1.0f, 1.0f)
 
 struct Vector2
 {
@@ -24,6 +26,14 @@ struct Vector3
 	float x;
 	float y;
 	float z;
+};
+
+struct Vector4
+{
+	float x;
+	float y;
+	float z;
+	float w;
 };
 
 static inline Vector2 V2(float x, float y)
@@ -41,6 +51,18 @@ static inline Vector3 V3(float x, float y, float z)
 static inline Vector3 V3(Vector2 v2)
 {
 	Vector3 result = {v2.x, v2.y, 0};
+	return result;
+}
+
+static inline Vector4 V4(float x, float y, float z)
+{
+	Vector4 result = { x, y, z, 1.0f };
+	return result;
+}
+
+static inline Vector4 V4(Vector3 v, float w = 1.0f)
+{
+	Vector4 result = { v.x, v.y, v.z, w };
 	return result;
 }
 

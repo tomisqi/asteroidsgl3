@@ -201,6 +201,7 @@ static void Game(float deltaT, Vector2 screenDim, Renderer* renderer_p)
 		if (bullet_p->enabled)
 		{
 			bullet_p->pos += deltaT * bullet_p->vel;
+			PushCircle(renderer_p, bullet_p->pos, bullet_p->size/2, V3(0, 1, 0));
 
 			AddToCollisions(&collisions, bullet_p);
 
@@ -211,6 +212,7 @@ static void Game(float deltaT, Vector2 screenDim, Renderer* renderer_p)
 	if (asteroid.enabled)
 	{
 		asteroid.pos = V2(ship.pos.y + 100, ship.pos.x - 100);
+		PushCircle(renderer_p, asteroid.pos, asteroid.size / 2, V3(0, 1, 0));
 		AddToCollisions(&collisions, &asteroid);
 	}
 

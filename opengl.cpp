@@ -210,7 +210,7 @@ void OpenGLEndFrame(OpenGL* openGl_p, Renderer* renderer_p, Texture textures[], 
 			glBufferData(GL_ARRAY_BUFFER, renderCmds_p->vertexCount * sizeof(ColoredVertex), renderCmds_p->onlyColoredVertexArray, GL_DYNAMIC_DRAW);
 			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ColoredVertex), (void*)OFFSET_OF(ColoredVertex, pos)); // position attribute
 			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(ColoredVertex), (void*)OFFSET_OF(ColoredVertex, color)); // color attribute
+			glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(ColoredVertex), (void*)OFFSET_OF(ColoredVertex, color)); // color attribute
 			glEnableVertexAttribArray(1);
 
 			// Matrix transform
@@ -219,14 +219,14 @@ void OpenGLEndFrame(OpenGL* openGl_p, Renderer* renderer_p, Texture textures[], 
 			unsigned int transformLoc = glGetUniformLocation(rendGrp_p->shaderProgram, "transform");
 			glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transMatrix));
 
-			int quadCount = renderCmds_p->vertexCount / 4;
+			int triangleCount = renderCmds_p->indexCount / 3;
 			int indexIndex = 0;
-			for (int quadIndex = 0; quadIndex < quadCount; quadIndex++)
+			for (int i = 0; i < triangleCount; i++)
 			{
 				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-				glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (GLvoid*)(indexIndex * sizeof(U16)), 0);
+				glDrawElementsBaseVertex(GL_TRIANGLES, 3, GL_UNSIGNED_SHORT, (GLvoid*)(indexIndex * sizeof(U16)), 0);
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-				indexIndex += 6;
+				indexIndex += 3;
 			}
 		}
 		break;
