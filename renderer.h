@@ -32,6 +32,14 @@ struct ColoredVertex
 	Vector4 color;
 };
 
+struct OrtographicProj
+{
+	float xmin;
+	float xmax;
+	float ymin;
+	float ymax;
+};
+
 struct RenderCommands
 {
 	U32 maxVertexCount;
@@ -49,6 +57,7 @@ struct RenderGroup
 	RenderGroupTypeE renderGroupType;
 	int shaderProgram;
 	RenderCommands renderCommands;
+	OrtographicProj ortoProj;
 };
 
 struct TextRendering
@@ -67,9 +76,12 @@ struct Renderer
 
 void RendererInit(Renderer* renderer_p);
 void RendererEndFrame(Renderer* renderer_p);
+void SetSpritesOrtographicProj(Renderer* renderer_p, Rect rect);
+void SetWireframeOrtographicProj(Renderer* renderer_p, Rect rect);
 void PushSprite(Renderer* renderer_p, Vector2 pos, Vector2 size, Vector2 facingV, TextureHandleT textureHandle, Vector3 color = VECTOR3_ONE);
 void PushUiRect(Renderer* renderer_p, Rect rect, TextureHandleT textureHandle, Vector3 color = VECTOR3_ONE);
 void PushText(Renderer* renderer_p, const char* text, Vector2 pos, Vector3 color = VECTOR3_ONE);
 void PushRect(Renderer* renderer_p, Rect rect, Vector3 color, Vector2 facingV  = VECTOR2_UP);
 void PushLine(Renderer* renderer_p, Vector2 startPos, Vector2 endPos, Vector3 color, float thickness = 0.1f);
 void PushCircle(Renderer* renderer_p, Vector2 centerPos, float radius, Vector3 color, int edges = 16);
+void PushVector(Renderer* renderer_p, Vector2 pos, Vector2 v, Vector3 color = VECTOR3_ONE);

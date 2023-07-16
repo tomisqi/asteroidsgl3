@@ -9,7 +9,13 @@ struct Rect
 
 static inline Rect NewRect(Vector2 pos, Vector2 size)
 {
-	Rect rect = { {pos}, {size} };
+	Rect rect = { pos, size };
+	return rect;
+}
+
+static inline Rect NewRectCenterPos(Vector2 centerPos, Vector2 size)
+{
+	Rect rect = { centerPos - 0.5f*size, size };
 	return rect;
 }
 

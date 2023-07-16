@@ -8,6 +8,7 @@
 
 #define SHIP_ROTATION_SPEED 360 * 1.5f // Degrees per second.
 #define SHIP_ACCELERATION   1000.0f
+#define SHIP_MAX_SPEED      1000.0f
 #define BULLET_SPEED        800.0f
 #define MAX_BULLETS         10
 #define BULLET_LIFETIME     5.0f
@@ -51,7 +52,14 @@ struct CollisionEntities
 	Entity* entities_p[MAX_ENTITIES];
 };
 
+struct Camera
+{
+	Rect rect;
+};
+
+extern Vector2 ScreenDim;
 static SceneE scene;
+static Camera camera;
 static Entity ship;
 static Entity asteroid;
 static CollisionEntities collisions;
@@ -70,6 +78,9 @@ void GameInit()
 
 static void GameStart()
 {
+	memset(&camera, 0, sizeof(camera));
+	camera.rect = NewRectCenterPos(VECTOR2_ZERO, ScreenDim);
+
 	memset(&ship, 0, sizeof(ship));
 	ship.type = ENTITY_PLAYERSPACESHIP;
 	ship.size = 75.0f;
@@ -87,7 +98,7 @@ static void GameStart()
 	memset(&asteroid, 0, sizeof(asteroid));
 	asteroid.type = ENTITY_ASTEROID;
 	asteroid.size = 55.0f;
-	//asteroid.enabled = true;
+	asteroid.enabled = true;
 
 	memset(&collisions, 0, sizeof(collisions));
 
@@ -138,12 +149,39 @@ static void CheckCollisions(CollisionEntities* collisions_p)
 	}
 }
 
-static void Game(float deltaT, Vector2 screenDim, Renderer* renderer_p)
+static bool PausedMenu()
+{
+	bool paused = true;
+	UILayout("PausedMenu");
+	{
+		if (UIButton("Continue", NewRect(VECTOR2_ZERO + V2(-120.0f, 100.0f), V2(250.0f, 50.0f))))
+		{
+			printf("Continue\n");
+			paused = false;
+		}
+		if (UIButton("Restart", NewRect(VECTOR2_ZERO + V2(-120.0f, 0.0f), V2(250.0f, 50.0f))))
+		{
+			printf("Restart\n");
+			paused = false;
+			GameStart();
+		}
+		if (UIButton("Main Menu", NewRect(VECTOR2_ZERO + V2(-120.0f, -100.0f), V2(250.0f, 50.0f))))
+		{
+			printf("Main Menu\n");
+			scene = SCENE_MAIN_MENU;
+		}
+	}
+	return paused;
+}
+
+
+static void Game(float deltaT, Renderer* renderer_p)
 {
 	if (paused) goto GAMEUPDATE_END;
 
 	time += deltaT;
 
+	Vector2 prevFacingV = ship.facingV;
 	if (GameInput_Button(BUTTON_RIGHT_ARROW))
 	{
 		ship.facingV = RotateDeg(ship.facingV, -SHIP_ROTATION_SPEED * deltaT);
@@ -154,14 +192,10 @@ static void Game(float deltaT, Vector2 screenDim, Renderer* renderer_p)
 		ship.facingV = RotateDeg(ship.facingV, SHIP_ROTATION_SPEED * deltaT);
 	}
 
-	Vector2 prevVel = ship.vel;
 	if (GameInput_Button(BUTTON_UP_ARROW))
 	{
 		float acceleration = SHIP_ACCELERATION;
-		if (GameInput_Button(BUTTON_LSHIFT))
-		{
-			acceleration *= 4.0f;
-		}
+		if (GameInput_Button(BUTTON_LSHIFT)) acceleration *= 4.0f;
 		ship.vel += acceleration * deltaT * Normalize(ship.facingV);
 	}
 	if (GameInput_Button(BUTTON_A))
@@ -175,7 +209,7 @@ static void Game(float deltaT, Vector2 screenDim, Renderer* renderer_p)
 		ship.vel += SHIP_ACCELERATION * deltaT * Normalize(rightFacingV);
 	}
 
-	if (ship.vel == prevVel)
+	if (!GameInput_Button(BUTTON_UP_ARROW))
 	{
 		ship.vel = 0.97f * ship.vel;
 	}
@@ -194,6 +228,10 @@ static void Game(float deltaT, Vector2 screenDim, Renderer* renderer_p)
 
 	ship.pos += deltaT * ship.vel;
 	AddToCollisions(&collisions, &ship);
+	PushVector(renderer_p, ship.pos -50.0f * Normalize(ship.pos), -20.0f*Normalize(ship.pos));
+	char buf[32] = { 0 };
+	sprintf(buf, "%.02f\n", Magnitude(ship.vel));
+	PushText(renderer_p, buf, V2(-380, 380));
 
 	for (int i = 0; i < MAX_BULLETS; i++)
 	{
@@ -201,7 +239,7 @@ static void Game(float deltaT, Vector2 screenDim, Renderer* renderer_p)
 		if (bullet_p->enabled)
 		{
 			bullet_p->pos += deltaT * bullet_p->vel;
-			PushCircle(renderer_p, bullet_p->pos, bullet_p->size/2, V3(0, 1, 0));
+			//PushCircle(renderer_p, bullet_p->pos, bullet_p->size/2, V3(0, 1, 0));
 
 			AddToCollisions(&collisions, bullet_p);
 
@@ -211,21 +249,20 @@ static void Game(float deltaT, Vector2 screenDim, Renderer* renderer_p)
 
 	if (asteroid.enabled)
 	{
-		asteroid.pos = V2(ship.pos.y + 100, ship.pos.x - 100);
+		asteroid.pos = V2(500, 100);
 		PushCircle(renderer_p, asteroid.pos, asteroid.size / 2, V3(0, 1, 0));
 		AddToCollisions(&collisions, &asteroid);
 	}
 
-	// Wrap around
-	if (ship.pos.x > screenDim.x / 2.0f) ship.pos.x = -screenDim.x / 2.0f;
-	if (ship.pos.x < -screenDim.x / 2.0f) ship.pos.x = screenDim.x / 2.0f;
-	if (ship.pos.y > screenDim.y / 2.0f) ship.pos.y = -screenDim.y / 2.0f;
-	if (ship.pos.y < -screenDim.y / 2.0f) ship.pos.y = screenDim.y / 2.0f;
-
 	CheckCollisions(&collisions);
 
-	PushLine(renderer_p, V2(-380, 0), V2(380, 0), V3(0.5f, 0.5f, 0.5f));
-	PushLine(renderer_p, V2(0, -380), V2(0, 380), V3(0.5f, 0.5f, 0.5f));
+	PushLine(renderer_p, V2(-1380, 0), V2(1380, 0), V3(0.5f, 0.5f, 0.5f));
+	PushLine(renderer_p, V2(0, -1380), V2(0, 1380), V3(0.5f, 0.5f, 0.5f));
+
+	camera.rect.size = V2(800, 800) + (Magnitude(ship.vel) / 2000) * V2(800,800);
+	camera.rect = NewRectCenterPos(ship.pos, camera.rect.size);
+	SetSpritesOrtographicProj(renderer_p, camera.rect);
+	SetWireframeOrtographicProj(renderer_p, camera.rect);
 
 GAMEUPDATE_END:
 
@@ -238,22 +275,7 @@ GAMEUPDATE_END:
 
 	if (asteroid.enabled) PushSprite(renderer_p, asteroid.pos, asteroid.size * VECTOR2_ONE, asteroid.facingV, 4, V3(0.54f, 0.27f, 0.07f));
 
-	if (paused)
-	{
-		UILayout("PausedMenu");
-		{
-			if (UIButton("Continue", NewRect(VECTOR2_ZERO + V2(-120.0f, 100.0f), V2(250.0f, 50.0f))))
-			{
-				printf("Continue\n");
-				paused = false;
-			}
-			if (UIButton("Main Menu", NewRect(VECTOR2_ZERO + V2(-120.0f, 0.0f), V2(250.0f, 50.0f))))
-			{
-				printf("Main Menu\n");
-				scene = SCENE_MAIN_MENU;
-			}
-		}
-	}
+	if (paused) paused = PausedMenu();
 
 	if (GameInput_ButtonDown(BUTTON_ESC))
 	{
@@ -316,7 +338,7 @@ static bool MainMenu()
 	return quitGame;
 }
 
-bool GameUpdateAndRender(float deltaT, Vector2 screenDim, Renderer* renderer_p)
+bool GameUpdateAndRender(float deltaT, Renderer* renderer_p)
 {
 	bool quitGame = false;
 	switch (scene)
@@ -325,7 +347,7 @@ bool GameUpdateAndRender(float deltaT, Vector2 screenDim, Renderer* renderer_p)
 		quitGame = MainMenu();
 		break;
 	case SCENE_GAME:
-		Game(deltaT, screenDim, renderer_p);
+		Game(deltaT, renderer_p);
 		break;
 	case NONE:
 	default:

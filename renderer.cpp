@@ -70,6 +70,30 @@ void RendererEndFrame(Renderer* renderer_p)
 	}
 }
 
+static void SetOrtographicProj(RenderGroup* rendGrp_p, Rect rect)
+{
+	Vector2 max = RectMaxXMaxY(rect);
+	Vector2 min = RectMinXMinY(rect);
+	rendGrp_p->ortoProj.xmin = min.x;
+	rendGrp_p->ortoProj.ymin = min.y;
+	rendGrp_p->ortoProj.xmax = max.x;
+	rendGrp_p->ortoProj.ymax = max.y;
+}
+
+void SetSpritesOrtographicProj(Renderer* renderer_p, Rect rect)
+{
+	RenderGroup* rendGrp_p = FindRenderGroup(renderer_p, RENDER_GROUP_SPRITES_DEFAULT);
+	assert(rendGrp_p);
+	SetOrtographicProj(rendGrp_p, rect);
+}
+
+void SetWireframeOrtographicProj(Renderer* renderer_p, Rect rect)
+{
+	RenderGroup* rendGrp_p = FindRenderGroup(renderer_p, RENDER_GROUP_WIREFRAME);
+	assert(rendGrp_p);
+	SetOrtographicProj(rendGrp_p, rect);
+}
+
 void PushSprite(Renderer* renderer_p, Vector2 pos, Vector2 size, Vector2 facingV, TextureHandleT textureHandle, Vector3 color)
 {
 	RenderGroup* rendGrp_p = FindRenderGroup(renderer_p, RENDER_GROUP_SPRITES_DEFAULT);
@@ -280,6 +304,19 @@ void PushLine(Renderer* renderer_p, Vector2 startPos, Vector2 endPos, Vector3 co
 
 	renderCmds_p->vertexCount += 4;
 	renderCmds_p->indexCount += 6;
+}
+
+#define LEG_LENGTH 10
+void PushVector(Renderer* renderer_p, Vector2 pos, Vector2 v, Vector3 color)
+{
+	Vector2 normV = Normalize(v);
+	Vector2 leg1V = RotateDeg(-normV, -25);
+	Vector2 leg2V = RotateDeg(-normV, +25);
+
+	Vector2 tip = pos + v;
+	PushLine(renderer_p, pos, tip, color);
+	PushLine(renderer_p, tip, tip + LEG_LENGTH * leg1V, color);
+	PushLine(renderer_p, tip, tip + LEG_LENGTH * leg2V, color);
 }
 
 void PushCircle(Renderer* renderer_p, Vector2 centerPos, float radius, Vector3 color, int edges)

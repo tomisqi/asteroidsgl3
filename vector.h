@@ -84,11 +84,29 @@ static inline Vector2 operator-(Vector2 a, Vector2 b)
 	return result;
 }
 
+static inline Vector2 operator-(Vector2 a)
+{
+	Vector2 result;
+	result.x = -a.x;
+	result.y = -a.y;
+
+	return result;
+}
+
 static inline Vector2 operator*(float s, Vector2 a)
 {
 	Vector2 result;
 	result.x = s * a.x;
 	result.y = s * a.y;
+
+	return result;
+}
+
+static inline Vector2 operator*(Vector2 a, Vector2 b)
+{
+	Vector2 result;
+	result.x = a.x * b.x;
+	result.y = a.y * b.y;
 
 	return result;
 }

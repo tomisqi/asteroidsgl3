@@ -147,8 +147,7 @@ void OpenGLEndFrame(OpenGL* openGl_p, Renderer* renderer_p, Texture textures[], 
 
 			// Matrix transform
 			glm::mat4 transMatrix = glm::mat4(1.0f);
-			transMatrix = glm::scale(transMatrix, glm::vec3(2.0f / screenDim.x, 2.0f / screenDim.y, 1.0f));
-//			transMatrix = glm::translate(transMatrix, glm::vec3(0.0f, 100.0f, 0.0f));
+			transMatrix = glm::ortho(rendGrp_p->ortoProj.xmin, rendGrp_p->ortoProj.xmax, rendGrp_p->ortoProj.ymin, rendGrp_p->ortoProj.ymax, -1.0f, 1.0f);
 			unsigned int transformLoc = glGetUniformLocation(rendGrp_p->shaderProgram, "transform");
 			glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transMatrix));
 
@@ -186,7 +185,6 @@ void OpenGLEndFrame(OpenGL* openGl_p, Renderer* renderer_p, Texture textures[], 
 			// Matrix transform
 			glm::mat4 transMatrix = glm::mat4(1.0f);
 			transMatrix = glm::scale(transMatrix, glm::vec3(2.0f / screenDim.x, 2.0f / screenDim.y, 1.0f));
-			//transMatrix = glm::translate(transMatrix, glm::vec3(0.0f, 100.0f, 0.0f));
 			unsigned int transformLoc = glGetUniformLocation(rendGrp_p->shaderProgram, "transform");
 			glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transMatrix));
 
@@ -254,7 +252,7 @@ void OpenGLEndFrame(OpenGL* openGl_p, Renderer* renderer_p, Texture textures[], 
 
 			// Matrix transform
 			glm::mat4 transMatrix = glm::mat4(1.0f);
-			transMatrix = glm::scale(transMatrix, glm::vec3(2.0f / screenDim.x, 2.0f / screenDim.y, 1.0f));
+			transMatrix = glm::ortho(rendGrp_p->ortoProj.xmin, rendGrp_p->ortoProj.xmax, rendGrp_p->ortoProj.ymin, rendGrp_p->ortoProj.ymax, -1.0f, 1.0f);
 			unsigned int transformLoc = glGetUniformLocation(rendGrp_p->shaderProgram, "transform");
 			glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transMatrix));
 
