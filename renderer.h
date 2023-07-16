@@ -14,6 +14,7 @@ enum RenderGroupTypeE
 	NONE,
 	RENDER_GROUP_SPRITES_DEFAULT,
 	RENDER_GROUP_TEXT_DEFAULT,
+	RENDER_GROUP_UI,
 	RENDER_GROUP_WIREFRAME,
 };
 
@@ -67,6 +68,7 @@ struct Renderer
 void RendererInit(Renderer* renderer_p);
 void RendererEndFrame(Renderer* renderer_p);
 void PushSprite(Renderer* renderer_p, Vector2 pos, Vector2 size, Vector2 facingV, TextureHandleT textureHandle, Vector3 color = VECTOR3_ONE);
+void PushUiRect(Renderer* renderer_p, Rect rect, TextureHandleT textureHandle, Vector3 color = VECTOR3_ONE);
 void PushText(Renderer* renderer_p, const char* text, Vector2 pos, Vector3 color = VECTOR3_ONE);
 void PushRect(Renderer* renderer_p, Rect rect, Vector3 color, Vector2 facingV  = VECTOR2_UP);
 void PushLine(Renderer* renderer_p, Vector2 startPos, Vector2 endPos, Vector3 color, float thickness = 0.1f);

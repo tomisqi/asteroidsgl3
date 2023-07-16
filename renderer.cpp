@@ -13,6 +13,7 @@
 
 #define MAX_SPRITE_QUADS    (1 << 8)
 #define MAX_TEXT_QUADS      (1 << 8)
+#define MAX_UI_QUADS        (1 << 8)
 #define MAX_WIREFRAME_QUADS (1 << 10)
 
 static U8 ttfBuffer[1 << 20];
@@ -27,25 +28,27 @@ void RendererInit(Renderer* renderer_p)
 	//
 	// Render groups
 	//
-
 	int spriteShaderProgram = LoadAndCompileShaders("../shaders/vertex_shader.vs", "../shaders/sprites_shader.fs"); 
 	assert(spriteShaderProgram >= 0);
 	renderer_p->renderGroups[0] = CreateRendererGroup(RENDER_GROUP_SPRITES_DEFAULT, spriteShaderProgram, MAX_SPRITE_QUADS);
 
+	int uiShaderProgram = LoadAndCompileShaders("../shaders/vertex_shader.vs", "../shaders/sprites_shader.fs");
+	assert(uiShaderProgram >= 0);
+	renderer_p->renderGroups[1] = CreateRendererGroup(RENDER_GROUP_UI, uiShaderProgram, MAX_UI_QUADS);
+
 	int textShaderProgram = LoadAndCompileShaders("../shaders/vertex_shader.vs", "../shaders/text_shader.fs"); 
 	assert(textShaderProgram >= 0);
-	renderer_p->renderGroups[1] = CreateRendererGroup(RENDER_GROUP_TEXT_DEFAULT, textShaderProgram, MAX_TEXT_QUADS);
+	renderer_p->renderGroups[2] = CreateRendererGroup(RENDER_GROUP_TEXT_DEFAULT, textShaderProgram, MAX_TEXT_QUADS);
 
 	int wireframeShaderProgram = LoadAndCompileShaders("../shaders/wireframe_shader.vs", "../shaders/wireframe_shader.fs");
 	assert(wireframeShaderProgram >= 0);
-	renderer_p->renderGroups[2] = CreateRendererGroup(RENDER_GROUP_WIREFRAME, wireframeShaderProgram, MAX_WIREFRAME_QUADS, true);
+	renderer_p->renderGroups[3] = CreateRendererGroup(RENDER_GROUP_WIREFRAME, wireframeShaderProgram, MAX_WIREFRAME_QUADS, true);
 
-	renderer_p->groupCnt = 3;
+	renderer_p->groupCnt = 4;
 
 	//
 	// Text Textures
 	// 
-
 	Texture* textTexture_p = &renderer_p->textRendering.textTexture;
 	textTexture_p->data_p = (U8*)malloc(512 * 512);
 	textTexture_p->width = 512;
@@ -96,6 +99,46 @@ void PushSprite(Renderer* renderer_p, Vector2 pos, Vector2 size, Vector2 facingV
 	vert_p[2].uv = V2(0.0f, 0.0f);
 	vert_p[2].textureHandle = textureHandle;
 	vert_p[3].pos = V3(MinXMaxY);
+	vert_p[3].color = color;
+	vert_p[3].uv = V2(0.0f, 1.0f);
+	vert_p[3].textureHandle = textureHandle;
+
+	U16 baseIndex = renderCmds_p->vertexCount;
+	U16* index_p = &renderCmds_p->indexArray[renderCmds_p->indexCount];
+	index_p[0] = baseIndex + 0;
+	index_p[1] = baseIndex + 1;
+	index_p[2] = baseIndex + 3;
+	index_p[3] = baseIndex + 1;
+	index_p[4] = baseIndex + 2;
+	index_p[5] = baseIndex + 3;
+
+	renderCmds_p->vertexCount += 4;
+	renderCmds_p->indexCount += 6;
+}
+
+void PushUiRect(Renderer* renderer_p, Rect rect, TextureHandleT textureHandle, Vector3 color)
+{
+	RenderGroup* rendGrp_p = FindRenderGroup(renderer_p, RENDER_GROUP_UI);
+	assert(rendGrp_p);
+
+	RenderCommands* renderCmds_p = &rendGrp_p->renderCommands;
+	assert(renderCmds_p->vertexCount < renderCmds_p->maxVertexCount);
+	assert(renderCmds_p->indexCount < renderCmds_p->maxIndexCount);
+
+	TexturedVertex* vert_p = &renderCmds_p->vertexArray[renderCmds_p->vertexCount];
+	vert_p[0].pos = V3(RectMaxXMaxY(rect));
+	vert_p[0].color = color;
+	vert_p[0].uv = V2(1.0f, 1.0f);
+	vert_p[0].textureHandle = textureHandle;
+	vert_p[1].pos = V3(RectMaxXMinY(rect));
+	vert_p[1].color = color;
+	vert_p[1].uv = V2(1.0f, 0.0f);
+	vert_p[1].textureHandle = textureHandle;
+	vert_p[2].pos = V3(RectMinXMinY(rect));
+	vert_p[2].color = color;
+	vert_p[2].uv = V2(0.0f, 0.0f);
+	vert_p[2].textureHandle = textureHandle;
+	vert_p[3].pos = V3(RectMinXMaxY(rect));
 	vert_p[3].color = color;
 	vert_p[3].uv = V2(0.0f, 1.0f);
 	vert_p[3].textureHandle = textureHandle;

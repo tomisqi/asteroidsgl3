@@ -154,13 +154,13 @@ bool UIButton(const char* text, Rect rect)
 	Vector2 rectCenterPos = GetRectCenter(rect);
 	if (layout_p->highlightedButtonIdx == buttonIdx)
 	{
-		PushSprite(ui.renderer_p, rectCenterPos, rect.size, VECTOR2_UP, 3, V3(0, 0, 1)); // Blue
+		PushUiRect(ui.renderer_p, rect, 3, V3(0, 0, 1)); // Blue
 		PushText(ui.renderer_p, text, V2(rectCenterPos.x - rect.size.x / 4 + 20.0f, -rectCenterPos.y), VECTOR3_ONE);
 		if (layout_p->highlightedButtonConfirm) return true;
 	}
 	else
 	{
-		PushSprite(ui.renderer_p, rectCenterPos, rect.size, VECTOR2_UP, 3);
+		PushUiRect(ui.renderer_p, rect, 3);
 		PushText(ui.renderer_p, text, V2(rectCenterPos.x - rect.size.x / 4 + 20.0f, -rectCenterPos.y), VECTOR3_ZERO);
 	}
 
