@@ -259,10 +259,9 @@ static void Game(float deltaT, Renderer* renderer_p)
 	PushLine(renderer_p, V2(-1380, 0), V2(1380, 0), V3(0.5f, 0.5f, 0.5f));
 	PushLine(renderer_p, V2(0, -1380), V2(0, 1380), V3(0.5f, 0.5f, 0.5f));
 
-	camera.rect.size = V2(800, 800) + (Magnitude(ship.vel) / 2000) * V2(800,800);
+	camera.rect.size = V2(1980, 1024) + (Magnitude(ship.vel) / 2000) * V2(1920,1024);
 	camera.rect = NewRectCenterPos(ship.pos, camera.rect.size);
 	SetSpritesOrtographicProj(renderer_p, camera.rect);
-	SetWireframeOrtographicProj(renderer_p, camera.rect);
 
 GAMEUPDATE_END:
 

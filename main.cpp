@@ -24,12 +24,13 @@
 #include "asteroids.h"
 #include "renderer.h"
 #include "ui.h"
+#include "test.h"
 #define STB_TRUETYPE_IMPLEMENTATION
 #include <stb_truetype.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-Vector2 ScreenDim = V2(800,800);
+Vector2 ScreenDim = V2(800, 800);
 
 static void GlfwErrorCallback(int error, const char* description)
 {
@@ -51,6 +52,7 @@ static void BindButtons()
 	GameInput_BindButton(BUTTON_S, GLFW_KEY_S);
 	GameInput_BindButton(BUTTON_A, GLFW_KEY_A);
 	GameInput_BindButton(BUTTON_D, GLFW_KEY_D);
+	GameInput_BindButton(BUTTON_W, GLFW_KEY_W);
 	GameInput_BindButton(BUTTON_UP_ARROW, GLFW_KEY_UP);
 	GameInput_BindButton(BUTTON_LEFT_ARROW, GLFW_KEY_LEFT);
 	GameInput_BindButton(BUTTON_RIGHT_ARROW, GLFW_KEY_RIGHT);
@@ -131,9 +133,10 @@ int main(void)
 	  glfwGetCursorPos(window, &mouseXpos, &mouseYpos);
 	  UINewFrame(V2(mouseXpos, mouseYpos), glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS, ScreenDim);
 
-	  bool quit = GameUpdateAndRender(GetDeltaT(), &renderer);
-
+	  //bool quit = GameUpdateAndRender(GetDeltaT(), &renderer);
+	  bool quit = Test(&renderer, GetDeltaT());
 	  // @temp --->
+#if 0
 	  static Vector2 facingV = VECTOR2_UP;
 	  facingV = RotateDeg(facingV, -90 * GetDeltaT());
 	  for (int i = 0; i < 16; i++)
@@ -151,27 +154,17 @@ int main(void)
 		  PushRect(&renderer, rect4, V3(1.0f, 1.0f, 0.0f));
 		  PushRect(&renderer, rect4, V3(0.0f, 1.0f, 0.0f), facingV);
 	  }
-#if 0
-	  Rect rect1 = NewRect(V2(300, 300), V2(100, 100));
-	  PushRect(&renderer, rect1, V3(0.0f, 1.0f, 0.0f));
-	  PushRect(&renderer, rect1, V3(1.0f, 1.0f, 0.0f), facingV);
-	  Rect rect2 = NewRect(V2(300, -400), V2(100, 100));
-	  PushRect(&renderer, rect2, V3(1.0f, 1.0f, 0.0f));
-	  PushRect(&renderer, rect2, V3(0.0f, 1.0f, 0.0f), facingV);
-	  Rect rect3 = NewRect(V2(-400, -400), V2(100, 100));
-	  PushRect(&renderer, rect3, V3(0.0f, 1.0f, 0.0f));
-	  PushRect(&renderer, rect3, V3(1.0f, 1.0f, 0.0f), facingV);
-	  Rect rect4 = NewRect(V2(-400, 300), V2(100, 100));
-	  PushRect(&renderer, rect4, V3(1.0f, 1.0f, 0.0f));
-	  PushRect(&renderer, rect4, V3(0.0f, 1.0f, 0.0f), facingV);
+	  //PushCircle(renderer_p, VECTOR2_ZERO, 50.0f, V3(1, 1, 1));
 #endif
-	  //PushCircle(&renderer, 100.0f*VECTOR2_ONE, 100.0f, V3(1, 1, 1));
+
+	  //PushVector(&renderer, VECTOR2_ZERO, v3);
 	  // 
 	  // <-- @temp
 
 	  //U64 i = __rdtsc();
 	  //printf_s("%I64d ticks\n", i);
 
+	  SetWireframeOrtographicProj(&renderer, NewRectCenterPos(VECTOR2_ZERO, ScreenDim));
 	  OpenGLEndFrame(&openGl, &renderer, textures, ScreenDim);
 	  RendererEndFrame(&renderer);
 	  glfwSwapBuffers(window);

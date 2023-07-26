@@ -128,6 +128,7 @@
     <ClCompile Include="..\main.cpp" />
     <ClCompile Include="..\opengl.cpp" />
     <ClCompile Include="..\renderer.cpp" />
+    <ClCompile Include="..\test.cpp" />
     <ClCompile Include="..\textures.cpp" />
     <ClCompile Include="..\ui.cpp" />
   </ItemGroup>
@@ -146,6 +147,7 @@
     <ClInclude Include="..\opengl.h" />
     <ClInclude Include="..\rect.h" />
     <ClInclude Include="..\renderer.h" />
+    <ClInclude Include="..\test.h" />
     <ClInclude Include="..\texture.h" />
     <ClInclude Include="..\timing.h" />
     <ClInclude Include="..\ui.h" />

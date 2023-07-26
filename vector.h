@@ -169,6 +169,11 @@ static inline float DegToRad(float deg)
 	return (PI / 180.0f) * deg;
 }
 
+static inline float RadToDeg(float rad)
+{
+	return (180.0f / PI) * rad;
+}
+
 static inline Vector2 RotateRad(Vector2 v, float rad)
 {
 	return v.x * V2(cosf(rad), sinf(rad)) + v.y * V2(-sinf(rad), cosf(rad));
@@ -185,3 +190,21 @@ static inline float Dot(Vector2 v1, Vector2 v2)
 {
 	return v1.x * v2.x + v1.y * v2.y;
 }
+
+static inline float AngleRad(Vector2 v1, Vector2 v2)
+{
+	Vector2 nv1 = Normalize(v1);
+	Vector2 nv2 = Normalize(v2);
+	return acosf(Dot(nv1, nv2));
+}
+
+static inline float AngleDeg(Vector2 v1, Vector2 v2)
+{
+	return RadToDeg(AngleRad(v1,v2));
+}
+
+static inline float Det(Vector2 v1, Vector2 v2)
+{
+	return v1.x * v2.y - v1.y * v2.x;
+}
+
