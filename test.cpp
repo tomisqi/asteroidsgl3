@@ -1,19 +1,23 @@
 #include "input.h"
 #include "test.h"
 #include "vector.h"
+#include "intersect.h"
 
 #define ROTATION_SPEED 360 // Degrees per second.
 #define SPEED          300.0f
 
-struct LineSegment
+struct Player
 {
-	Vector2 p1;
-	Vector2 p2;
+	Vector2 pos;
+	Vector2 facingV;
+	float radius;
 };
 
-static LineSegment line1 = { V2(-100, 0), V2(-300, 0) };
-static LineSegment line2 = { V2( 100, 100), V2( 100, -100) };
-static Vector2 player;
+extern Vector2 ScreenDim;
+
+//static LineSegment line1 = { V2(-100, 0), V2(-300, 0) };
+static LineSegment line2 = { V2( 100, 200), V2( 100, -200) };
+static Player player = {V2(-100, 0), VECTOR2_UP, 75};
 
 static void MoveLine(LineSegment* line_p, Vector2 v, float deltaT)
 {
@@ -31,33 +35,6 @@ static void RotateLine(LineSegment* line_p, float angleDeg)
 	line_p->p2 = centerP - len / 2 * v;
 }
 
-static bool LinesIntersect(LineSegment line1, LineSegment line2, Vector2& p)
-{
-	float x1 = line1.p1.x;
-	float y1 = line1.p1.y;
-	float x2 = line1.p2.x;
-	float y2 = line1.p2.y;
-
-	float x3 = line2.p1.x;
-	float y3 = line2.p1.y;
-	float x4 = line2.p2.x;
-	float y4 = line2.p2.y;
-
-	float tNum = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4));
-	float tDen = ((x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4));
-	float uNum = ((x1 - x3) * (y1 - y2) - (y1 - y3) * (x1 - x2));
-	float uDen = ((x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4));
-
-	float t = -1.0f;
-	if (tDen) t = tNum / tDen;
-	float u = -1.0f;
-	if (uDen) u = uNum / uDen;
-
-	p = V2(x1 + t*(x2-x1), y1+t*(y2-y1));
-
-	return (t >= 0 && t <= 1) && (u >= 0 && u <= 1);
-}
-
 static void MakeHorizontal(LineSegment* line_p)
 {
 	Vector2 v = Normalize(line_p->p1 - line_p->p2);
@@ -72,16 +49,16 @@ static void MakeHorizontal(LineSegment* line_p)
 bool Test(Renderer* renderer_p, float deltaT)
 {
 	// Line1
-	if (GameInput_Button(BUTTON_UP_ARROW))
+	Vector2 p;
+	if (GameInput_Button(BUTTON_UP_ARROW) && !LineCircleIntersect(line2, player.pos, player.radius, p))
 	{
-		Vector2 facingV = Normalize(line1.p1 - line1.p2);
-		MoveLine(&line1, facingV, deltaT);
+		player.pos += SPEED * deltaT * player.facingV;
 	}
 	if (GameInput_Button(BUTTON_DOWN_ARROW))
 	{
-		Vector2 facingV = Normalize(line1.p1 - line1.p2);
-		MoveLine(&line1, -facingV, deltaT);
+		player.pos += -SPEED * deltaT * player.facingV;
 	}
+#if 0
 	if (GameInput_Button(BUTTON_LSHIFT) && GameInput_ButtonDown(BUTTON_RIGHT_ARROW))
 	{
 		float angle = AngleDeg(VECTOR2_RIGHT, line1.p1 - line1.p2); 
@@ -92,10 +69,12 @@ bool Test(Renderer* renderer_p, float deltaT)
 		RotateLine(&line1, angle45);
 
 	}
+#endif
 	if (GameInput_Button(BUTTON_RIGHT_ARROW) && !GameInput_Button(BUTTON_LSHIFT))
 	{
-		RotateLine(&line1, -ROTATION_SPEED * deltaT);
+		player.facingV = RotateDeg(player.facingV, -ROTATION_SPEED * deltaT);
 	}
+#if 0
 	if (GameInput_Button(BUTTON_LSHIFT) && GameInput_ButtonDown(BUTTON_LEFT_ARROW))
 	{
 		float angle = AngleDeg(VECTOR2_RIGHT, line1.p1 - line1.p2);
@@ -106,9 +85,10 @@ bool Test(Renderer* renderer_p, float deltaT)
 		RotateLine(&line1, angle45);
 
 	}
+#endif
 	if (GameInput_Button(BUTTON_LEFT_ARROW) && !GameInput_Button(BUTTON_LSHIFT))
 	{
-		RotateLine(&line1, ROTATION_SPEED * deltaT);
+		player.facingV = RotateDeg(player.facingV, ROTATION_SPEED * deltaT);
 	}
 
 	// Line2
@@ -131,21 +111,16 @@ bool Test(Renderer* renderer_p, float deltaT)
 		RotateLine(&line2, ROTATION_SPEED * deltaT);
 	}
 
-	PushLine(renderer_p, line1.p1, line1.p2, V3(1, 1, 1));
-	PushLine(renderer_p, line2.p1, line2.p2, V3(1, 1, 1));
-	PushText(renderer_p, "p1", V2(line1.p1.x, -line1.p1.y), V3(0, 1, 1));
-	PushText(renderer_p, "p1", V2(line2.p1.x, -line2.p1.y), V3(0, 1, 1));
+	// Player
+	PushCircle(renderer_p, player.pos, player.radius, V3(0, 1, 0), 64);
+	PushLine(renderer_p, player.pos, player.pos + player.radius*player.facingV, V3(0, 1, 1));
 
-	Vector2 intersectionPoint = V2(U16_MAX, U16_MAX);
-	if (LinesIntersect(line1, line2, intersectionPoint))
-	{
-		PushCircle(renderer_p, intersectionPoint, 5.0f, V3(1, 0, 1));
-	}
+	PushLine(renderer_p, line2.p1, line2.p2, V3(1, 1, 1));
+	PushText(renderer_p, "p1", V2(line2.p1.x, -line2.p1.y), V3(0, 1, 1));
 
 	PushCircle(renderer_p, VECTOR2_ZERO, 2.0f, V3(1, 1, 1)); // origin
 
-	//printf("%.02f ", AngleDeg(line1.p1 - line1.p2, line2.p1 - line2.p2));
-
+	SetWireframeOrtographicProj(renderer_p, NewRectCenterPos(VECTOR2_ZERO, ScreenDim));
 
 	bool quit = false;
 	if (GameInput_Button(BUTTON_ESC))

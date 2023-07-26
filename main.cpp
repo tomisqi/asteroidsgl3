@@ -133,8 +133,8 @@ int main(void)
 	  glfwGetCursorPos(window, &mouseXpos, &mouseYpos);
 	  UINewFrame(V2(mouseXpos, mouseYpos), glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS, ScreenDim);
 
-	  //bool quit = GameUpdateAndRender(GetDeltaT(), &renderer);
-	  bool quit = Test(&renderer, GetDeltaT());
+	  bool quit = GameUpdateAndRender(GetDeltaT(), &renderer);
+	  //bool quit = Test(&renderer, GetDeltaT());
 	  // @temp --->
 #if 0
 	  static Vector2 facingV = VECTOR2_UP;
@@ -164,7 +164,6 @@ int main(void)
 	  //U64 i = __rdtsc();
 	  //printf_s("%I64d ticks\n", i);
 
-	  SetWireframeOrtographicProj(&renderer, NewRectCenterPos(VECTOR2_ZERO, ScreenDim));
 	  OpenGLEndFrame(&openGl, &renderer, textures, ScreenDim);
 	  RendererEndFrame(&renderer);
 	  glfwSwapBuffers(window);
