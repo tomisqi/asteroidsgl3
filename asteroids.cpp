@@ -5,6 +5,7 @@
 #include "rect.h"
 #include "ui.h"
 #include "timing.h"
+#include "intersect.h"
 
 #define SHIP_ROTATION_SPEED 360 * 1.5f // Degrees per second.
 #define SHIP_ACCELERATION   1000.0f
@@ -13,6 +14,8 @@
 #define MAX_BULLETS         10
 #define BULLET_LIFETIME     5.0f
 #define MAX_ENTITIES        1<<8
+#define MAX_SOLIDS          8
+
 enum SceneE : U8
 {
 	SCENE_NONE,
@@ -57,12 +60,19 @@ struct Camera
 	Rect rect;
 };
 
+struct Level
+{
+	int solidsCount;
+	LineSegment solids[MAX_SOLIDS];
+};
+
 extern Vector2 ScreenDim;
 static SceneE scene;
 static Camera camera;
+static Level level;
 static Entity ship;
 static Entity asteroid;
-static CollisionEntities collisions;
+static CollisionEntities entityCollisions;
 static int bulletIdx;
 static Entity bullets[MAX_BULLETS];
 static bool paused;
@@ -76,10 +86,28 @@ void GameInit()
 	time = 0;
 }
 
+static void BuildLevel(Level* level_p)
+{
+	level_p->solids[0] = { V2(100, 100), V2(100, 1400) };
+	level_p->solids[1] = { V2(1400, 100), V2(1400, 1400) };
+	level_p->solids[2] = { V2(100, 1400), V2(1400, 1400) };
+	level_p->solids[3] = { V2(400, 100), V2(1400, 100) };
+
+	level_p->solids[4] = { V2(400, 400), V2(400, 1100) };
+	level_p->solids[5] = { V2(1100, 400), V2(1100, 1100) };
+	level_p->solids[6] = { V2(400, 1100), V2(1100, 1100) };
+	level_p->solids[7] = { V2(400, 400), V2(1100, 400) };
+
+	level_p->solidsCount = 8;
+}
+
 static void GameStart()
 {
 	memset(&camera, 0, sizeof(camera));
-	camera.rect = NewRectCenterPos(VECTOR2_ZERO, ScreenDim);
+	camera.rect = NewRectCenterPos(VECTOR2_ZERO, 2*ScreenDim);
+
+	memset(&level, 0, sizeof(level));
+	BuildLevel(&level);
 
 	memset(&ship, 0, sizeof(ship));
 	ship.type = ENTITY_PLAYERSPACESHIP;
@@ -98,9 +126,9 @@ static void GameStart()
 	memset(&asteroid, 0, sizeof(asteroid));
 	asteroid.type = ENTITY_ASTEROID;
 	asteroid.size = 55.0f;
-	asteroid.enabled = true;
+	//asteroid.enabled = true;
 
-	memset(&collisions, 0, sizeof(collisions));
+	memset(&entityCollisions, 0, sizeof(entityCollisions));
 
 	paused = false;
 }
@@ -110,7 +138,8 @@ static void AddToCollisions(CollisionEntities* collisions_p, Entity* entity_p)
 	collisions_p->entities_p[collisions_p->count++] = entity_p;
 }
 
-static void CheckCollisions(CollisionEntities* collisions_p)
+
+static void EntityEntityCollisions(CollisionEntities* collisions_p)
 {
 	for (int i = 0; i < collisions_p->count; i++)
 	{
@@ -141,6 +170,55 @@ static void CheckCollisions(CollisionEntities* collisions_p)
 					ship_p->facingV = VECTOR2_UP;
 				}
 				break;
+				default:
+					break;
+				}
+			}
+		}
+	}
+}
+
+static void AddForce(Vector2 f, Entity* entity_p, float deltaT)
+{
+	const float mass = 1.0f;
+	entity_p->vel = (deltaT/mass) * f ;
+}
+
+static void EntityLevelCollisions(CollisionEntities* entities_p, float deltaT, Level* level_p)
+{
+	for (int i = 0; i < entities_p->count; i++)
+	{
+		Entity* entity_p = entities_p->entities_p[i];
+
+		for (int s = 0; s < level_p->solidsCount; s++)
+		{
+			LineSegment solidLine = level_p->solids[s];
+			Vector2 p;
+			if (LineCircleIntersect(solidLine, entity_p->pos, entity_p->size/2, p))
+			{
+				switch (entity_p->type)
+				{
+				case ENTITY_BULLET:
+				{
+					Entity* bullet_p = entity_p;
+					Vector2 normal = -RotateDeg(Normalize(solidLine.p1 - solidLine.p2), 90);
+					float angle = AngleDeg(bullet_p->vel, normal);
+					bullet_p->vel = RotateDeg(bullet_p->vel, -2*angle);
+					//bullet_p->vel = BULLET_SPEED * normal;
+					//bullet_p->pos += 4 * deltaT * bullet_p->vel;
+
+//					bullet_p->enabled = false;
+					break;
+				}
+				case ENTITY_PLAYERSPACESHIP:
+				{
+					Entity* ship_p = entity_p;
+					Vector2 v = Normalize(p - ship_p->pos);
+					//Vector2 v = Normalize(RotateDeg(ship_p->vel, 90));
+					Vector2 force = -100000 * v;
+					AddForce(force, ship_p, deltaT);
+					break;
+				}
 				default:
 					break;
 				}
@@ -224,10 +302,10 @@ static void Game(float deltaT, Renderer* renderer_p)
 		bullet_p->tEnabled = time;
 	}
 
-	collisions.count = 0;
+	entityCollisions.count = 0;
 
 	ship.pos += deltaT * ship.vel;
-	AddToCollisions(&collisions, &ship);
+	AddToCollisions(&entityCollisions, &ship);
 	PushVector(renderer_p, ship.pos -50.0f * Normalize(ship.pos), -20.0f*Normalize(ship.pos));
 	char buf[32] = { 0 };
 	sprintf(buf, "%.02f\n", Magnitude(ship.vel));
@@ -241,7 +319,7 @@ static void Game(float deltaT, Renderer* renderer_p)
 			bullet_p->pos += deltaT * bullet_p->vel;
 			//PushCircle(renderer_p, bullet_p->pos, bullet_p->size/2, V3(0, 1, 0));
 
-			AddToCollisions(&collisions, bullet_p);
+			AddToCollisions(&entityCollisions, bullet_p);
 
 			if ((time - bullet_p->tEnabled) > BULLET_LIFETIME) bullet_p->enabled = false;
 		}
@@ -251,15 +329,22 @@ static void Game(float deltaT, Renderer* renderer_p)
 	{
 		asteroid.pos = V2(500, 100);
 		PushCircle(renderer_p, asteroid.pos, asteroid.size / 2, V3(0, 1, 0));
-		AddToCollisions(&collisions, &asteroid);
+		AddToCollisions(&entityCollisions, &asteroid);
 	}
 
-	CheckCollisions(&collisions);
+	EntityEntityCollisions(&entityCollisions);
+	EntityLevelCollisions(&entityCollisions, deltaT, &level);
 
-	PushLine(renderer_p, V2(-1380, 0), V2(1380, 0), V3(0.5f, 0.5f, 0.5f));
-	PushLine(renderer_p, V2(0, -1380), V2(0, 1380), V3(0.5f, 0.5f, 0.5f));
+	//PushLine(renderer_p, V2(-1380, 0), V2(1380, 0), V3(0.5f, 0.5f, 0.5f));
+	//PushLine(renderer_p, V2(0, -1380), V2(0, 1380), V3(0.5f, 0.5f, 0.5f));
 
-	camera.rect.size = V2(800, 800) + (Magnitude(ship.vel) / 2000) * V2(800, 800);
+	for (int i = 0; i < MAX_SOLIDS; i++)
+	{
+		LineSegment solid = level.solids[i];
+		PushLine(renderer_p, solid.p1, solid.p2, V3(0,1,0));
+	}
+
+	//camera.rect.size = V2(800, 800) + (Magnitude(ship.vel) / 2000) * V2(800, 800);
 	camera.rect = NewRectCenterPos(ship.pos, camera.rect.size);
 	SetSpritesOrtographicProj(renderer_p, camera.rect);
 	SetWireframeOrtographicProj(renderer_p, camera.rect);

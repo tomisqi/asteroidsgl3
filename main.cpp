@@ -76,6 +76,11 @@ static double r2()
 	return (double)rand() / (double)RAND_MAX;
 }
 
+void characterCallback(GLFWwindow* window, unsigned int codepoint)
+{
+	printf("%d\n", codepoint);
+}
+
 int main(void)
 {
 	glfwSetErrorCallback(GlfwErrorCallback);
@@ -101,12 +106,13 @@ int main(void)
 
 	srand(time(NULL)); // Initialize random seed
 
-	Texture textures[5] = { 0 };
+	Texture textures[6] = { 0 };
 	textures[0] = LoadTexture("../assets/textures/Spacecraft.png");	
 	textures[1] = LoadTexture("../assets/textures/RedShot.png");
 	textures[2] = LoadTexture("../assets/textures/ELI.png");
 	textures[3] = LoadTexture("../assets/textures/InternalTileDev.png");
 	textures[4] = LoadTexture("../assets/textures/Asteroid.png");
+	textures[5] = LoadTexture("../assets/textures/RectWhite.png");
 
 	OpenGL openGl;
 	OpenGLInit(&openGl);
@@ -118,6 +124,7 @@ int main(void)
 	BindButtons();
 	ButtonState buttonStates[MAX_BUTTONS];
 	glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
+	glfwSetCharCallback(window, characterCallback);
 
 	UIInit(&renderer);
 	GameInit();
@@ -133,8 +140,8 @@ int main(void)
 	  glfwGetCursorPos(window, &mouseXpos, &mouseYpos);
 	  UINewFrame(V2(mouseXpos, mouseYpos), glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS, ScreenDim);
 
-	  bool quit = GameUpdateAndRender(GetDeltaT(), &renderer);
-	  //bool quit = Test(&renderer, GetDeltaT());
+	  //bool quit = GameUpdateAndRender(GetDeltaT(), &renderer);
+	  bool quit = Test(&renderer, GetDeltaT());
 	  // @temp --->
 #if 0
 	  static Vector2 facingV = VECTOR2_UP;

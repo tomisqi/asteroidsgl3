@@ -34,6 +34,16 @@ static inline Vector2 GetRectCenter(Rect rect)
 	return V2(rect.pos.x + rect.size.x / 2, rect.pos.y + rect.size.y / 2);
 }
 
+static inline Rect ContractRect(Rect rect, Vector2 contractSize)
+{
+	return NewRect(V2(rect.pos.x + contractSize.x / 2, rect.pos.y + contractSize.y / 2), rect.size - contractSize);
+}
+
+static inline Rect ContractRect(Rect rect, float size)
+{
+	return ContractRect(rect, V2(size, size));
+}
+
 static inline Rect ExpandRect(Rect rect, Vector2 expandSize)
 {
 	return NewRect(V2(rect.pos.x - expandSize.x / 2, rect.pos.y - expandSize.y / 2), rect.size + expandSize);
