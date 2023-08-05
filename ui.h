@@ -18,3 +18,5 @@ void UINewFrame(Vector2 mousePosScreen, bool mouseIsPressed, Vector2 screenDim);
 bool UIButton(const char* text, Rect rect);
 
 void UILayout(const char* name);
+
+void UITextInput(Rect rect);

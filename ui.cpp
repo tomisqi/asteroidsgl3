@@ -40,6 +40,7 @@ struct UiContext
 {
 	Mouse mouse;
 	Renderer* renderer_p;
+	S64 frameCnt;
 
 	S64 activeLayoutId;
 	LayoutData layouts[MAX_LAYOUTS];
@@ -61,6 +62,8 @@ void UIInit(Renderer* renderer_p)
 
 void UINewFrame(Vector2 mousePosScreen, bool mouseIsPressed, Vector2 screenDim)
 {
+	ui.frameCnt++;
+
 	MouseStateE prevState = ui.mouse.state;
 	ui.mouse.state = MOUSE_RELEASED;
 	if (mouseIsPressed)
@@ -154,13 +157,13 @@ bool UIButton(const char* text, Rect rect)
 	Vector2 rectCenterPos = GetRectCenter(rect);
 	if (layout_p->highlightedButtonIdx == buttonIdx)
 	{
-		PushUiRect(ui.renderer_p, rect, 3, V3(0, 0, 1)); // Blue
+		PushUiRect(ui.renderer_p, rect, V3(0, 0, 1)); // Blue
 		PushText(ui.renderer_p, text, V2(rectCenterPos.x - rect.size.x / 4 + 20.0f, -rectCenterPos.y), VECTOR3_ONE);
 		if (layout_p->highlightedButtonConfirm) return true;
 	}
 	else
 	{
-		PushUiRect(ui.renderer_p, rect, 3);
+		PushUiRect(ui.renderer_p, rect, V3(0.804f, 0.667f, 1.0f));
 		PushText(ui.renderer_p, text, V2(rectCenterPos.x - rect.size.x / 4 + 20.0f, -rectCenterPos.y), VECTOR3_ZERO);
 	}
 
@@ -168,4 +171,14 @@ bool UIButton(const char* text, Rect rect)
 	if (layout_p->buttonIdx == layout_p->buttonsCount) ui.activeLayoutId = S64_MAX;
 
 	return false;
+}
+
+void UITextInput(Rect rect)
+{
+	PushUiRect(ui.renderer_p, rect, V3(0,1,1));
+	PushUiRect(ui.renderer_p, ContractRect(rect, 5), V3(0.2f, 0.2f, 0.2f));
+
+	int cursorPos = 0;
+	int charWidth = 10;
+	//PushRect();
 }

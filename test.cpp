@@ -2,6 +2,7 @@
 #include "test.h"
 #include "vector.h"
 #include "intersect.h"
+#include "ui.h"
 
 #define ROTATION_SPEED 360 // Degrees per second.
 #define SPEED          300.0f
@@ -121,6 +122,12 @@ bool Test(Renderer* renderer_p, float deltaT)
 	PushCircle(renderer_p, VECTOR2_ZERO, 2.0f, V3(1, 1, 1)); // origin
 
 	SetWireframeOrtographicProj(renderer_p, NewRectCenterPos(VECTOR2_ZERO, ScreenDim));
+
+
+	//
+	UITextInput(NewRect(V2(-380,350), V2(200, 40)));
+	
+
 
 	bool quit = false;
 	if (GameInput_Button(BUTTON_ESC))

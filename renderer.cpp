@@ -32,9 +32,9 @@ void RendererInit(Renderer* renderer_p)
 	assert(spriteShaderProgram >= 0);
 	renderer_p->renderGroups[0] = CreateRendererGroup(RENDER_GROUP_SPRITES_DEFAULT, spriteShaderProgram, MAX_SPRITE_QUADS);
 
-	int uiShaderProgram = LoadAndCompileShaders("../shaders/vertex_shader.vs", "../shaders/sprites_shader.fs");
+	int uiShaderProgram = LoadAndCompileShaders("../shaders/wireframe_shader.vs", "../shaders/wireframe_shader.fs");
 	assert(uiShaderProgram >= 0);
-	renderer_p->renderGroups[1] = CreateRendererGroup(RENDER_GROUP_UI, uiShaderProgram, MAX_UI_QUADS);
+	renderer_p->renderGroups[1] = CreateRendererGroup(RENDER_GROUP_UI, uiShaderProgram, MAX_UI_QUADS, true);
 
 	int textShaderProgram = LoadAndCompileShaders("../shaders/vertex_shader.vs", "../shaders/text_shader.fs"); 
 	assert(textShaderProgram >= 0);
@@ -140,7 +140,7 @@ void PushSprite(Renderer* renderer_p, Vector2 pos, Vector2 size, Vector2 facingV
 	renderCmds_p->indexCount += 6;
 }
 
-void PushUiRect(Renderer* renderer_p, Rect rect, TextureHandleT textureHandle, Vector3 color)
+void PushUiRect(Renderer* renderer_p, Rect rect, Vector3 color)
 {
 	RenderGroup* rendGrp_p = FindRenderGroup(renderer_p, RENDER_GROUP_UI);
 	assert(rendGrp_p);
@@ -149,23 +149,24 @@ void PushUiRect(Renderer* renderer_p, Rect rect, TextureHandleT textureHandle, V
 	assert(renderCmds_p->vertexCount < renderCmds_p->maxVertexCount);
 	assert(renderCmds_p->indexCount < renderCmds_p->maxIndexCount);
 
-	TexturedVertex* vert_p = &renderCmds_p->vertexArray[renderCmds_p->vertexCount];
-	vert_p[0].pos = V3(RectMaxXMaxY(rect));
-	vert_p[0].color = color;
-	vert_p[0].uv = V2(1.0f, 1.0f);
-	vert_p[0].textureHandle = textureHandle;
-	vert_p[1].pos = V3(RectMaxXMinY(rect));
-	vert_p[1].color = color;
-	vert_p[1].uv = V2(1.0f, 0.0f);
-	vert_p[1].textureHandle = textureHandle;
-	vert_p[2].pos = V3(RectMinXMinY(rect));
-	vert_p[2].color = color;
-	vert_p[2].uv = V2(0.0f, 0.0f);
-	vert_p[2].textureHandle = textureHandle;
-	vert_p[3].pos = V3(RectMinXMaxY(rect));
-	vert_p[3].color = color;
-	vert_p[3].uv = V2(0.0f, 1.0f);
-	vert_p[3].textureHandle = textureHandle;
+	Vector2 facingV = VECTOR2_UP; //@nocommit
+
+	float angleRad = atan2(-facingV.x, facingV.y);
+	Vector2 rectCenter = GetRectCenter(rect); // Rotates around center
+	Vector2 MaxXMaxY = rectCenter + RotateRad(V2(0.5f * rect.size.x, 0.5f * rect.size.y), angleRad);
+	Vector2 MaxXMinY = rectCenter + RotateRad(V2(0.5f * rect.size.x, -0.5f * rect.size.y), angleRad);
+	Vector2 MinXMinY = rectCenter + RotateRad(V2(-0.5f * rect.size.x, -0.5f * rect.size.y), angleRad);
+	Vector2 MinXMaxY = rectCenter + RotateRad(V2(-0.5f * rect.size.x, 0.5f * rect.size.y), angleRad);
+
+	ColoredVertex* vert_p = &renderCmds_p->onlyColoredVertexArray[renderCmds_p->vertexCount];
+	vert_p[0].pos = V3(MaxXMaxY);
+	vert_p[0].color = V4(color);
+	vert_p[1].pos = V3(MaxXMinY);
+	vert_p[1].color = V4(color);
+	vert_p[2].pos = V3(MinXMinY);
+	vert_p[2].color = V4(color);
+	vert_p[3].pos = V3(MinXMaxY);
+	vert_p[3].color = V4(color);
 
 	U16 baseIndex = renderCmds_p->vertexCount;
 	U16* index_p = &renderCmds_p->indexArray[renderCmds_p->indexCount];
