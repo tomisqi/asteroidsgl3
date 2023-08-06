@@ -9,7 +9,9 @@
 #include "hash.h"
 #include "input.h"
 
-#define MAX_LAYOUTS 256
+#define MAX_LAYOUTS             256
+#define TEXT_INPUT_MAX_LENGTH   1 << 10
+#define MAX_TEXT_INPUTS         10
 
 enum UIDirectionE : U8
 {
@@ -25,15 +27,24 @@ struct Mouse
 	Vector2 pos;
 };
 
+struct TextInputText
+{
+	int len;
+	char textBuf[TEXT_INPUT_MAX_LENGTH + 1];
+};
+
 struct LayoutData
 {
 	bool layoutActive;
 	bool layoutDone;
+
 	S16 buttonIdx;
 	int buttonsCount;
-
 	S16 highlightedButtonIdx;
 	bool highlightedButtonConfirm;
+
+	int textInputActive;
+	TextInputText textInputs[MAX_TEXT_INPUTS];
 };
 
 struct UiContext
@@ -57,6 +68,7 @@ void UIInit(Renderer* renderer_p)
 	for (int i = 0; i < MAX_LAYOUTS; i++)
 	{
 		ui.layouts[i].highlightedButtonIdx = -1;
+		ui.layouts[i].textInputActive = 0;
 	}
 }
 
@@ -157,14 +169,14 @@ bool UIButton(const char* text, Rect rect)
 	Vector2 rectCenterPos = GetRectCenter(rect);
 	if (layout_p->highlightedButtonIdx == buttonIdx)
 	{
-		PushUiRect(ui.renderer_p, rect, V3(0, 0, 1)); // Blue
-		PushText(ui.renderer_p, text, V2(rectCenterPos.x - rect.size.x / 4 + 20.0f, -rectCenterPos.y), VECTOR3_ONE);
+		PushUiRect(ui.renderer_p, rect, COLOR_BLUE);
+		PushText(ui.renderer_p, text, V2(rectCenterPos.x - rect.size.x / 4 + 20.0f, -rectCenterPos.y), COLOR_WHITE);
 		if (layout_p->highlightedButtonConfirm) return true;
 	}
 	else
 	{
-		PushUiRect(ui.renderer_p, rect, V3(0.804f, 0.667f, 1.0f));
-		PushText(ui.renderer_p, text, V2(rectCenterPos.x - rect.size.x / 4 + 20.0f, -rectCenterPos.y), VECTOR3_ZERO);
+		PushUiRect(ui.renderer_p, rect, Col(0.804f, 0.667f, 1.0f));
+		PushText(ui.renderer_p, text, V2(rectCenterPos.x - rect.size.x / 4 + 20.0f, -rectCenterPos.y), COLOR_BLACK);
 	}
 
 	// If this is the last button, reset the activeLayoutId to make sure other buttons are part of another layout.
@@ -173,12 +185,29 @@ bool UIButton(const char* text, Rect rect)
 	return false;
 }
 
+void UICharCallback(unsigned int codepoint)
+{
+	char c = (char)codepoint;
+	printf("%c\n", c);
+
+	int textInputActive = ui.layouts[0].textInputActive;
+	TextInputText* textInputText_p = &ui.layouts[0].textInputs[textInputActive];
+
+	int idx = textInputText_p->len++;
+	textInputText_p->textBuf[idx] = c;
+}
+
 void UITextInput(Rect rect)
 {
-	PushUiRect(ui.renderer_p, rect, V3(0,1,1));
-	PushUiRect(ui.renderer_p, ContractRect(rect, 5), V3(0.2f, 0.2f, 0.2f));
+	PushUiRect(ui.renderer_p, rect, COLOR_CYAN);
+	PushUiRect(ui.renderer_p, ContractRect(rect, 5), Col(0.3f, 0.3f, 0.3f));
 
-	int cursorPos = 0;
+	int textInputActive = ui.layouts[0].textInputActive;
+	TextInputText* textInputText_p = &ui.layouts[0].textInputs[textInputActive];
+
+	int cursorPos = textInputText_p->len;
 	int charWidth = 10;
-	//PushRect();
+	int textPos = rect.pos.x + 6 + charWidth * cursorPos;
+	if (ui.frameCnt % 100 < 50) PushUiRect(ui.renderer_p, NewRect(V2(textPos, rect.pos.y + 6), V2(1, rect.size.y - 12)), COLOR_WHITE);
+	PushText(ui.renderer_p, textInputText_p->textBuf, V2(rect.pos.x + 6, -(rect.pos.y + 6)), COLOR_WHITE);
 }

@@ -79,6 +79,7 @@ static double r2()
 void characterCallback(GLFWwindow* window, unsigned int codepoint)
 {
 	printf("%d\n", codepoint);
+	UICharCallback(codepoint);
 }
 
 int main(void)

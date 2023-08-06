@@ -5,7 +5,7 @@
 #include "ui.h"
 
 #define ROTATION_SPEED 360 // Degrees per second.
-#define SPEED          300.0f
+#define SPEED          500.0f
 
 struct Player
 {
@@ -113,19 +113,19 @@ bool Test(Renderer* renderer_p, float deltaT)
 	}
 
 	// Player
-	PushCircle(renderer_p, player.pos, player.radius, V3(0, 1, 0), 64);
-	PushLine(renderer_p, player.pos, player.pos + player.radius*player.facingV, V3(0, 1, 1));
+	PushCircle(renderer_p, player.pos, player.radius, COLOR_GREEN, 64);
+	PushLine(renderer_p, player.pos, player.pos + player.radius*player.facingV, COLOR_CYAN);
 
-	PushLine(renderer_p, line2.p1, line2.p2, V3(1, 1, 1));
-	PushText(renderer_p, "p1", V2(line2.p1.x, -line2.p1.y), V3(0, 1, 1));
+	PushLine(renderer_p, line2.p1, line2.p2, COLOR_WHITE);
+	PushText(renderer_p, "p1", V2(line2.p1.x, -line2.p1.y), COLOR_CYAN);
 
-	PushCircle(renderer_p, VECTOR2_ZERO, 2.0f, V3(1, 1, 1)); // origin
+	PushCircle(renderer_p, VECTOR2_ZERO, 2.0f, COLOR_WHITE); // origin
 
 	SetWireframeOrtographicProj(renderer_p, NewRectCenterPos(VECTOR2_ZERO, ScreenDim));
 
 
 	//
-	UITextInput(NewRect(V2(-380,350), V2(200, 40)));
+	UITextInput(NewRect(V2(-380,350), V2(200, 20)));
 	
 
 

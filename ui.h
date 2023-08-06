@@ -20,3 +20,5 @@ bool UIButton(const char* text, Rect rect);
 void UILayout(const char* name);
 
 void UITextInput(Rect rect);
+
+void UICharCallback(unsigned int codepoint);

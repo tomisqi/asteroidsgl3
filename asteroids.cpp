@@ -6,6 +6,7 @@
 #include "ui.h"
 #include "timing.h"
 #include "intersect.h"
+#include "color.h"
 
 #define SHIP_ROTATION_SPEED 360 * 1.5f // Degrees per second.
 #define SHIP_ACCELERATION   1000.0f
@@ -309,7 +310,7 @@ static void Game(float deltaT, Renderer* renderer_p)
 	PushVector(renderer_p, ship.pos -50.0f * Normalize(ship.pos), -20.0f*Normalize(ship.pos));
 	char buf[32] = { 0 };
 	sprintf(buf, "%.02f\n", Magnitude(ship.vel));
-	PushText(renderer_p, buf, V2(-380, 380));
+	PushText(renderer_p, buf, V2(-380, 380), COLOR_WHITE);
 
 	for (int i = 0; i < MAX_BULLETS; i++)
 	{
@@ -328,7 +329,7 @@ static void Game(float deltaT, Renderer* renderer_p)
 	if (asteroid.enabled)
 	{
 		asteroid.pos = V2(500, 100);
-		PushCircle(renderer_p, asteroid.pos, asteroid.size / 2, V3(0, 1, 0));
+		PushCircle(renderer_p, asteroid.pos, asteroid.size / 2, COLOR_GREEN);
 		AddToCollisions(&entityCollisions, &asteroid);
 	}
 
@@ -341,7 +342,7 @@ static void Game(float deltaT, Renderer* renderer_p)
 	for (int i = 0; i < MAX_SOLIDS; i++)
 	{
 		LineSegment solid = level.solids[i];
-		PushLine(renderer_p, solid.p1, solid.p2, V3(0,1,0));
+		PushLine(renderer_p, solid.p1, solid.p2, COLOR_GREEN);
 	}
 
 	//camera.rect.size = V2(800, 800) + (Magnitude(ship.vel) / 2000) * V2(800, 800);
@@ -358,7 +359,7 @@ GAMEUPDATE_END:
 	}
 	if (ship.enabled) PushSprite(renderer_p, ship.pos, ship.size * VECTOR2_ONE, ship.facingV, 0);
 
-	if (asteroid.enabled) PushSprite(renderer_p, asteroid.pos, asteroid.size * VECTOR2_ONE, asteroid.facingV, 4, V3(0.54f, 0.27f, 0.07f));
+	if (asteroid.enabled) PushSprite(renderer_p, asteroid.pos, asteroid.size * VECTOR2_ONE, asteroid.facingV, 4, Col(0.54f, 0.27f, 0.07f));
 
 	if (paused) paused = PausedMenu();
 

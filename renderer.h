@@ -3,6 +3,7 @@
 #include "vector.h"
 #include "texture.h"
 #include "rect.h"
+#include "color.h"
 #include <stb_truetype.h>
 
 #define MAX_RENDER_GROUPS 16
@@ -21,7 +22,7 @@ enum RenderGroupTypeE
 struct TexturedVertex
 {
 	Vector3 pos;
-	Vector3 color;
+	Color color;
 	Vector2 uv;
 	TextureHandleT textureHandle;
 };
@@ -29,7 +30,7 @@ struct TexturedVertex
 struct ColoredVertex
 {
 	Vector3 pos;
-	Vector4 color;
+	Color color;
 };
 
 struct OrtographicProj
@@ -78,10 +79,10 @@ void RendererInit(Renderer* renderer_p);
 void RendererEndFrame(Renderer* renderer_p);
 void SetSpritesOrtographicProj(Renderer* renderer_p, Rect rect);
 void SetWireframeOrtographicProj(Renderer* renderer_p, Rect rect);
-void PushSprite(Renderer* renderer_p, Vector2 pos, Vector2 size, Vector2 facingV, TextureHandleT textureHandle, Vector3 color = VECTOR3_ONE);
-void PushUiRect(Renderer* renderer_p, Rect rect, Vector3 color);
-void PushText(Renderer* renderer_p, const char* text, Vector2 pos, Vector3 color = VECTOR3_ONE);
-void PushRect(Renderer* renderer_p, Rect rect, Vector3 color, Vector2 facingV  = VECTOR2_UP);
-void PushLine(Renderer* renderer_p, Vector2 startPos, Vector2 endPos, Vector3 color, float thickness = 0.1f);
-void PushCircle(Renderer* renderer_p, Vector2 centerPos, float radius, Vector3 color, int edges = 16);
-void PushVector(Renderer* renderer_p, Vector2 pos, Vector2 v, Vector3 color = VECTOR3_ONE);
+void PushSprite(Renderer* renderer_p, Vector2 pos, Vector2 size, Vector2 facingV, TextureHandleT textureHandle, Color color = COLOR_WHITE);
+void PushUiRect(Renderer* renderer_p, Rect rect, Color color);
+void PushText(Renderer* renderer_p, const char* text, Vector2 pos, Color color, float* finalPos_x = nullptr);
+void PushRect(Renderer* renderer_p, Rect rect, Color color, Vector2 facingV  = VECTOR2_UP);
+void PushLine(Renderer* renderer_p, Vector2 startPos, Vector2 endPos, Color color, float thickness = 0.1f);
+void PushCircle(Renderer* renderer_p, Vector2 centerPos, float radius, Color color, int edges = 16);
+void PushVector(Renderer* renderer_p, Vector2 pos, Vector2 v, Color color = COLOR_WHITE);

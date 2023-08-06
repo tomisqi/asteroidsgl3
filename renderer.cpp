@@ -10,6 +10,7 @@
 #include "renderer.h"
 #include "opengl.h"
 #include "rect.h"
+#include "color.h"
 
 #define MAX_SPRITE_QUADS    (1 << 8)
 #define MAX_TEXT_QUADS      (1 << 8)
@@ -94,7 +95,7 @@ void SetWireframeOrtographicProj(Renderer* renderer_p, Rect rect)
 	SetOrtographicProj(rendGrp_p, rect);
 }
 
-void PushSprite(Renderer* renderer_p, Vector2 pos, Vector2 size, Vector2 facingV, TextureHandleT textureHandle, Vector3 color)
+void PushSprite(Renderer* renderer_p, Vector2 pos, Vector2 size, Vector2 facingV, TextureHandleT textureHandle, Color color)
 {
 	RenderGroup* rendGrp_p = FindRenderGroup(renderer_p, RENDER_GROUP_SPRITES_DEFAULT);
 	assert(rendGrp_p);
@@ -140,7 +141,7 @@ void PushSprite(Renderer* renderer_p, Vector2 pos, Vector2 size, Vector2 facingV
 	renderCmds_p->indexCount += 6;
 }
 
-void PushUiRect(Renderer* renderer_p, Rect rect, Vector3 color)
+void PushUiRect(Renderer* renderer_p, Rect rect, Color color)
 {
 	RenderGroup* rendGrp_p = FindRenderGroup(renderer_p, RENDER_GROUP_UI);
 	assert(rendGrp_p);
@@ -160,13 +161,13 @@ void PushUiRect(Renderer* renderer_p, Rect rect, Vector3 color)
 
 	ColoredVertex* vert_p = &renderCmds_p->onlyColoredVertexArray[renderCmds_p->vertexCount];
 	vert_p[0].pos = V3(MaxXMaxY);
-	vert_p[0].color = V4(color);
+	vert_p[0].color = color;
 	vert_p[1].pos = V3(MaxXMinY);
-	vert_p[1].color = V4(color);
+	vert_p[1].color = color;
 	vert_p[2].pos = V3(MinXMinY);
-	vert_p[2].color = V4(color);
+	vert_p[2].color = color;
 	vert_p[3].pos = V3(MinXMaxY);
-	vert_p[3].color = V4(color);
+	vert_p[3].color = color;
 
 	U16 baseIndex = renderCmds_p->vertexCount;
 	U16* index_p = &renderCmds_p->indexArray[renderCmds_p->indexCount];
@@ -181,7 +182,7 @@ void PushUiRect(Renderer* renderer_p, Rect rect, Vector3 color)
 	renderCmds_p->indexCount += 6;
 }
 
-void PushText(Renderer* renderer_p, const char* text, Vector2 pos, Vector3 color)
+void PushText(Renderer* renderer_p, const char* text, Vector2 pos, Color color, float* finalPos_x)
 {
 	RenderGroup* rendGrp_p = FindRenderGroup(renderer_p, RENDER_GROUP_TEXT_DEFAULT);
 	assert(rendGrp_p);
@@ -228,9 +229,11 @@ void PushText(Renderer* renderer_p, const char* text, Vector2 pos, Vector3 color
 		}
 		++text;
 	}
+
+	if (finalPos_x) *finalPos_x = pos.x;
 }
 
-void PushRect(Renderer* renderer_p, Rect rect, Vector3 color, Vector2 facingV)
+void PushRect(Renderer* renderer_p, Rect rect, Color color, Vector2 facingV)
 {
 	RenderGroup* rendGrp_p = FindRenderGroup(renderer_p, RENDER_GROUP_WIREFRAME);
 	assert(rendGrp_p);
@@ -248,13 +251,13 @@ void PushRect(Renderer* renderer_p, Rect rect, Vector3 color, Vector2 facingV)
 
 	ColoredVertex* vert_p = &renderCmds_p->onlyColoredVertexArray[renderCmds_p->vertexCount];
 	vert_p[0].pos = V3(MaxXMaxY);
-	vert_p[0].color = V4(color);
+	vert_p[0].color = color;
 	vert_p[1].pos = V3(MaxXMinY);
-	vert_p[1].color = V4(color);
+	vert_p[1].color = color;
 	vert_p[2].pos = V3(MinXMinY);
-	vert_p[2].color = V4(color); 
+	vert_p[2].color = color; 
 	vert_p[3].pos = V3(MinXMaxY);
-	vert_p[3].color = V4(color); 
+	vert_p[3].color = color; 
 
 	U16 baseIndex = renderCmds_p->vertexCount;
 	U16* index_p = &renderCmds_p->indexArray[renderCmds_p->indexCount];
@@ -269,7 +272,7 @@ void PushRect(Renderer* renderer_p, Rect rect, Vector3 color, Vector2 facingV)
 	renderCmds_p->indexCount += 6;
 }
 
-void PushLine(Renderer* renderer_p, Vector2 startPos, Vector2 endPos, Vector3 color, float thickness)
+void PushLine(Renderer* renderer_p, Vector2 startPos, Vector2 endPos, Color color, float thickness)
 {
 	RenderGroup* rendGrp_p = FindRenderGroup(renderer_p, RENDER_GROUP_WIREFRAME);
 	assert(rendGrp_p);
@@ -286,13 +289,13 @@ void PushLine(Renderer* renderer_p, Vector2 startPos, Vector2 endPos, Vector3 co
 
 	ColoredVertex* vert_p = &renderCmds_p->onlyColoredVertexArray[renderCmds_p->vertexCount];
 	vert_p[0].pos = V3(MaxXMaxY);
-	vert_p[0].color = V4(color); 
+	vert_p[0].color = color; 
 	vert_p[1].pos = V3(MaxXMinY);
-	vert_p[1].color = V4(color); 
+	vert_p[1].color = color; 
 	vert_p[2].pos = V3(MinXMinY);
-	vert_p[2].color = V4(color); 
+	vert_p[2].color = color; 
 	vert_p[3].pos = V3(MinXMaxY);
-	vert_p[3].color = V4(color); 
+	vert_p[3].color = color; 
 
 	U16 baseIndex = renderCmds_p->vertexCount;
 	U16* index_p = &renderCmds_p->indexArray[renderCmds_p->indexCount];
@@ -308,7 +311,7 @@ void PushLine(Renderer* renderer_p, Vector2 startPos, Vector2 endPos, Vector3 co
 }
 
 #define LEG_LENGTH 10
-void PushVector(Renderer* renderer_p, Vector2 pos, Vector2 v, Vector3 color)
+void PushVector(Renderer* renderer_p, Vector2 pos, Vector2 v, Color color)
 {
 	Vector2 normV = Normalize(v);
 	Vector2 leg1V = RotateDeg(-normV, -25);
@@ -320,7 +323,7 @@ void PushVector(Renderer* renderer_p, Vector2 pos, Vector2 v, Vector3 color)
 	PushLine(renderer_p, tip, tip + LEG_LENGTH * leg2V, color);
 }
 
-void PushCircle(Renderer* renderer_p, Vector2 centerPos, float radius, Vector3 color, int edges)
+void PushCircle(Renderer* renderer_p, Vector2 centerPos, float radius, Color color, int edges)
 {
 	RenderGroup* rendGrp_p = FindRenderGroup(renderer_p, RENDER_GROUP_WIREFRAME);
 	assert(rendGrp_p);
@@ -340,11 +343,11 @@ void PushCircle(Renderer* renderer_p, Vector2 centerPos, float radius, Vector3 c
 
 		ColoredVertex* vert_p = &renderCmds_p->onlyColoredVertexArray[renderCmds_p->vertexCount];
 		vert_p[0].pos = V3(centerPos);
-		vert_p[0].color = V4(color, 0.0f);
+		vert_p[0].color = Col(color.r, color.g, color.b, 0.0f);
 		vert_p[1].pos = V3(pos1);
-		vert_p[1].color = V4(color, 1.0f);
+		vert_p[1].color = color;
 		vert_p[2].pos = V3(pos2);
-		vert_p[2].color = V4(color, 1.0f);
+		vert_p[2].color = color;
 
 		U16 baseIndex = renderCmds_p->vertexCount;
 		U16* index_p = &renderCmds_p->indexArray[renderCmds_p->indexCount];
