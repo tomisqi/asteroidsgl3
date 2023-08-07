@@ -272,13 +272,24 @@ void UITextInput(Rect rect)
 	if (GameInput_ButtonDown(BUTTON_RIGHT_ARROW) || holdingRightArrow) textInputText_p->cursorIdx++;
 	textInputText_p->cursorIdx = Clamp(textInputText_p->cursorIdx, 0, textInputText_p->textBufLen);
 
+	if (!GameInput_Button(BUTTON_LSHIFT)) textInputText_p->selectionEndIdx = textInputText_p->cursorIdx;
+
 	int cursorPeriodInFrames = TEXT_CURSOR_BLINKING_PERIOD / ui.deltaT;
-	TextCursor textCursor = { textInputText_p->cursorIdx, rect.pos.x + 6};
-	PushText(ui.renderer_p, textInputText_p->textBuf, V2(rect.pos.x + 6, -(rect.pos.y + 6)), COLOR_WHITE, &textCursor);
+	PushText(ui.renderer_p, textInputText_p->textBuf, V2(rect.pos.x + 6, -(rect.pos.y + 6)), COLOR_WHITE);
+
+	float xpos = GetCharPosX(ui.renderer_p, rect.pos.x + 6, textInputText_p->textBuf, textInputText_p->cursorIdx);
 	bool cursorMoved = prevCursorIdx != textInputText_p->cursorIdx;
 	if (ui.frameCnt % cursorPeriodInFrames < (cursorPeriodInFrames / 2) || cursorMoved) 
 	{
-		PushUiRect(ui.renderer_p, NewRect(V2(textCursor.xpos, rect.pos.y + 6), V2(1, rect.size.y - 12)), COLOR_WHITE); // Show cursor
+		PushUiRect(ui.renderer_p, NewRect(V2(xpos, rect.pos.y + 6), V2(1, rect.size.y - 12)), COLOR_WHITE); // Show cursor
+	}
+	if (textInputText_p->cursorIdx != textInputText_p->selectionEndIdx)
+	{
+		float endxpos = GetCharPosX(ui.renderer_p, rect.pos.x + 6, textInputText_p->textBuf, textInputText_p->selectionEndIdx);;
+		float minx = fmin(xpos, endxpos);
+		float maxx = fmax(xpos, endxpos);
+		float xsize = maxx - minx;
+		PushUiRect(ui.renderer_p, NewRect(V2(minx, rect.pos.y + 6), V2(xsize, rect.size.y - 12)), COLOR_BLUE); // Selection
 	}
 
 	if (GameInput_ButtonDown(BUTTON_BACKSPACE))	  ui.layouts[0].tLastInput = ui.time;

@@ -182,7 +182,28 @@ void PushUiRect(Renderer* renderer_p, Rect rect, Color color)
 	renderCmds_p->indexCount += 6;
 }
 
-void PushText(Renderer* renderer_p, const char* text, Vector2 pos, Color color, TextCursor* textCursor_p)
+float GetCharPosX(Renderer* renderer_p, float startPosX, const char* text, int charIdx)
+{
+	float posX = startPosX;
+	stbtt_bakedchar* bakedCharData_p = renderer_p->textRendering.charUvData;
+
+	float posY = 0; // Doesn't matter.
+	int idx = 0;
+	while (*text)
+	{
+		if (*text >= 32 && *text < 128)
+		{
+			stbtt_aligned_quad q;
+			stbtt_GetBakedQuad(bakedCharData_p, 512, 512, *text - 32, &posX, &posY, &q, 1);//1=opengl & d3d10+,0=d3d9
+			if ((idx == (charIdx - 1))) return posX;
+		}
+		++idx;
+		++text;
+	}
+	return startPosX;
+}
+
+void PushText(Renderer* renderer_p, const char* text, Vector2 pos, Color color)
 {
 	RenderGroup* rendGrp_p = FindRenderGroup(renderer_p, RENDER_GROUP_TEXT_DEFAULT);
 	assert(rendGrp_p);
@@ -227,8 +248,6 @@ void PushText(Renderer* renderer_p, const char* text, Vector2 pos, Color color, 
 
 			renderCmds_p->vertexCount += 4;
 			renderCmds_p->indexCount += 6;
-
-			if (textCursor_p && (idx == (textCursor_p->index-1))) textCursor_p->xpos = pos.x;
 		}
 		++idx;
 		++text;
