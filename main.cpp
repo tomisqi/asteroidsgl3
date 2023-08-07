@@ -60,6 +60,9 @@ static void BindButtons()
 	GameInput_BindButton(BUTTON_LSHIFT, GLFW_KEY_LEFT_SHIFT);
 	GameInput_BindButton(BUTTON_ENTER, GLFW_KEY_ENTER);
 	GameInput_BindButton(BUTTON_ESC, GLFW_KEY_ESCAPE);
+	GameInput_BindButton(BUTTON_BACKSPACE, GLFW_KEY_BACKSPACE);
+	GameInput_BindButton(BUTTON_HOME, GLFW_KEY_HOME);
+	GameInput_BindButton(BUTTON_END, GLFW_KEY_END);
 }
 
 static float GetDeltaT()
@@ -76,9 +79,8 @@ static double r2()
 	return (double)rand() / (double)RAND_MAX;
 }
 
-void characterCallback(GLFWwindow* window, unsigned int codepoint)
+void charCallback(GLFWwindow* window, unsigned int codepoint)
 {
-	printf("%d\n", codepoint);
 	UICharCallback(codepoint);
 }
 
@@ -125,7 +127,7 @@ int main(void)
 	BindButtons();
 	ButtonState buttonStates[MAX_BUTTONS];
 	glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
-	glfwSetCharCallback(window, characterCallback);
+	glfwSetCharCallback(window, charCallback);
 
 	UIInit(&renderer);
 	GameInit();
@@ -139,10 +141,10 @@ int main(void)
 
 	  double mouseXpos, mouseYpos;
 	  glfwGetCursorPos(window, &mouseXpos, &mouseYpos);
-	  UINewFrame(V2(mouseXpos, mouseYpos), glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS, ScreenDim);
+	  UINewFrame(V2(mouseXpos, mouseYpos), glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS, ScreenDim, GetDeltaT());
 
-	  bool quit = GameUpdateAndRender(GetDeltaT(), &renderer);
-	  //bool quit = Test(&renderer, GetDeltaT());
+	  //bool quit = GameUpdateAndRender(GetDeltaT(), &renderer);
+	  bool quit = Test(&renderer, GetDeltaT());
 	  // @temp --->
 #if 0
 	  static Vector2 facingV = VECTOR2_UP;

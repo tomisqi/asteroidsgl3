@@ -13,7 +13,7 @@ enum MouseStateE : U8
 
 void UIInit(Renderer* renderer_p);
 
-void UINewFrame(Vector2 mousePosScreen, bool mouseIsPressed, Vector2 screenDim);
+void UINewFrame(Vector2 mousePosScreen, bool mouseIsPressed, Vector2 screenDim, float deltaT);
 
 bool UIButton(const char* text, Rect rect);
 

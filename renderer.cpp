@@ -182,13 +182,14 @@ void PushUiRect(Renderer* renderer_p, Rect rect, Color color)
 	renderCmds_p->indexCount += 6;
 }
 
-void PushText(Renderer* renderer_p, const char* text, Vector2 pos, Color color, float* finalPos_x)
+void PushText(Renderer* renderer_p, const char* text, Vector2 pos, Color color, TextCursor* textCursor_p)
 {
 	RenderGroup* rendGrp_p = FindRenderGroup(renderer_p, RENDER_GROUP_TEXT_DEFAULT);
 	assert(rendGrp_p);
 
 	stbtt_bakedchar* bakedCharData_p = renderer_p->textRendering.charUvData;
 
+	int idx = 0;
 	while (*text) 
 	{
 		if (*text >= 32 && *text < 128) 
@@ -226,11 +227,12 @@ void PushText(Renderer* renderer_p, const char* text, Vector2 pos, Color color, 
 
 			renderCmds_p->vertexCount += 4;
 			renderCmds_p->indexCount += 6;
+
+			if (textCursor_p && (idx == (textCursor_p->index-1))) textCursor_p->xpos = pos.x;
 		}
+		++idx;
 		++text;
 	}
-
-	if (finalPos_x) *finalPos_x = pos.x;
 }
 
 void PushRect(Renderer* renderer_p, Rect rect, Color color, Vector2 facingV)

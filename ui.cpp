@@ -8,10 +8,14 @@
 #include "stdio.h"
 #include "hash.h"
 #include "input.h"
+#include "utils.h"
 
-#define MAX_LAYOUTS             256
-#define TEXT_INPUT_MAX_LENGTH   1 << 10
-#define MAX_TEXT_INPUTS         10
+#define MAX_LAYOUTS				    256
+#define TEXT_CURSOR_BLINKING_PERIOD 1.2f // The following periodicity: WHITE->TRANSPARENT->WHITE->TRANSPARENT-> etc..
+#define TEXT_INPUT_MAX_LENGTH       1 << 10
+#define MAX_TEXT_INPUTS             10
+
+#define ELAPSED(t2, t1) (t2 - t1)
 
 enum UIDirectionE : U8
 {
@@ -29,7 +33,9 @@ struct Mouse
 
 struct TextInputText
 {
-	int len;
+	int cursorIdx;
+	int selectionEndIdx;
+	int textBufLen;
 	char textBuf[TEXT_INPUT_MAX_LENGTH + 1];
 };
 
@@ -44,6 +50,7 @@ struct LayoutData
 	bool highlightedButtonConfirm;
 
 	int textInputActive;
+	double tLastInput;
 	TextInputText textInputs[MAX_TEXT_INPUTS];
 };
 
@@ -52,6 +59,8 @@ struct UiContext
 	Mouse mouse;
 	Renderer* renderer_p;
 	S64 frameCnt;
+	float deltaT;
+	double time;
 
 	S64 activeLayoutId;
 	LayoutData layouts[MAX_LAYOUTS];
@@ -64,6 +73,7 @@ void UIInit(Renderer* renderer_p)
 	memset(&ui, 0, sizeof(ui));
 	ui.renderer_p = renderer_p;
 	ui.activeLayoutId = S64_MAX;
+	ui.time = 0;
 
 	for (int i = 0; i < MAX_LAYOUTS; i++)
 	{
@@ -72,9 +82,11 @@ void UIInit(Renderer* renderer_p)
 	}
 }
 
-void UINewFrame(Vector2 mousePosScreen, bool mouseIsPressed, Vector2 screenDim)
+void UINewFrame(Vector2 mousePosScreen, bool mouseIsPressed, Vector2 screenDim, float deltaT)
 {
 	ui.frameCnt++;
+	ui.deltaT = deltaT;
+	ui.time += deltaT;
 
 	MouseStateE prevState = ui.mouse.state;
 	ui.mouse.state = MOUSE_RELEASED;
@@ -185,16 +197,49 @@ bool UIButton(const char* text, Rect rect)
 	return false;
 }
 
+static void ShiftStringToRight(char* s, int strLen, int index)
+{
+	int charCnt = strLen - index;
+	char* new_p = &s[strLen];
+	char* old_p = &s[strLen-1];
+	for (int i = 0; i < charCnt; i++)
+	{
+		*new_p = *old_p;
+		new_p--;
+		old_p--;
+	}
+}
+
+
+static void ShiftStringToLeft(char* s, int strLen, int index)
+{
+	int charCnt = strLen - index;
+	char* new_p = &s[index];
+	char* old_p = &s[index + 1];
+	for (int i = 0; i < charCnt; i++)
+	{
+		*new_p = *old_p;
+		new_p++;
+		old_p++;
+	}
+}
+
 void UICharCallback(unsigned int codepoint)
 {
 	char c = (char)codepoint;
-	printf("%c\n", c);
 
 	int textInputActive = ui.layouts[0].textInputActive;
 	TextInputText* textInputText_p = &ui.layouts[0].textInputs[textInputActive];
 
-	int idx = textInputText_p->len++;
-	textInputText_p->textBuf[idx] = c;
+	int idx = textInputText_p->textBufLen++;
+	if (textInputText_p->cursorIdx != textInputText_p->textBufLen)
+	{
+		ShiftStringToRight(textInputText_p->textBuf, textInputText_p->textBufLen, textInputText_p->cursorIdx);
+		idx = textInputText_p->cursorIdx;
+	}
+
+	textInputText_p->textBuf[idx] = c;	
+	textInputText_p->cursorIdx++;
 }
 
 void UITextInput(Rect rect)
@@ -205,9 +250,38 @@ void UITextInput(Rect rect)
 	int textInputActive = ui.layouts[0].textInputActive;
 	TextInputText* textInputText_p = &ui.layouts[0].textInputs[textInputActive];
 
-	int cursorPos = textInputText_p->len;
-	int charWidth = 10;
-	int textPos = rect.pos.x + 6 + charWidth * cursorPos;
-	if (ui.frameCnt % 100 < 50) PushUiRect(ui.renderer_p, NewRect(V2(textPos, rect.pos.y + 6), V2(1, rect.size.y - 12)), COLOR_WHITE);
-	PushText(ui.renderer_p, textInputText_p->textBuf, V2(rect.pos.x + 6, -(rect.pos.y + 6)), COLOR_WHITE);
+	int prevCursorIdx = textInputText_p->cursorIdx;
+
+	bool holdingBackspace = GameInput_Button(BUTTON_BACKSPACE) && ELAPSED(ui.time, ui.layouts[0].tLastInput) >= 0.5f;
+	if ((GameInput_ButtonDown(BUTTON_BACKSPACE) || holdingBackspace) && (textInputText_p->textBufLen > 0) && (textInputText_p->cursorIdx > 0))
+	{
+		int idx = --textInputText_p->textBufLen;
+		if (textInputText_p->cursorIdx != textInputText_p->textBufLen)
+		{
+			ShiftStringToLeft(textInputText_p->textBuf, textInputText_p->textBufLen, textInputText_p->cursorIdx-1);
+		}
+		textInputText_p->textBuf[idx] = '\0';
+		textInputText_p->cursorIdx--;
+	}	
+
+	bool holdingLeftArrow  = GameInput_Button(BUTTON_LEFT_ARROW) && ELAPSED(ui.time, ui.layouts[0].tLastInput) >= 0.5f;
+	bool holdingRightArrow = GameInput_Button(BUTTON_RIGHT_ARROW) && ELAPSED(ui.time, ui.layouts[0].tLastInput) >= 0.5f;
+	if (GameInput_ButtonDown(BUTTON_HOME))                             textInputText_p->cursorIdx = 0;
+	if (GameInput_ButtonDown(BUTTON_END))                              textInputText_p->cursorIdx = textInputText_p->textBufLen;
+	if (GameInput_ButtonDown(BUTTON_LEFT_ARROW)  || holdingLeftArrow)  textInputText_p->cursorIdx--;
+	if (GameInput_ButtonDown(BUTTON_RIGHT_ARROW) || holdingRightArrow) textInputText_p->cursorIdx++;
+	textInputText_p->cursorIdx = Clamp(textInputText_p->cursorIdx, 0, textInputText_p->textBufLen);
+
+	int cursorPeriodInFrames = TEXT_CURSOR_BLINKING_PERIOD / ui.deltaT;
+	TextCursor textCursor = { textInputText_p->cursorIdx, rect.pos.x + 6};
+	PushText(ui.renderer_p, textInputText_p->textBuf, V2(rect.pos.x + 6, -(rect.pos.y + 6)), COLOR_WHITE, &textCursor);
+	bool cursorMoved = prevCursorIdx != textInputText_p->cursorIdx;
+	if (ui.frameCnt % cursorPeriodInFrames < (cursorPeriodInFrames / 2) || cursorMoved) 
+	{
+		PushUiRect(ui.renderer_p, NewRect(V2(textCursor.xpos, rect.pos.y + 6), V2(1, rect.size.y - 12)), COLOR_WHITE); // Show cursor
+	}
+
+	if (GameInput_ButtonDown(BUTTON_BACKSPACE))	  ui.layouts[0].tLastInput = ui.time;
+	if (GameInput_ButtonDown(BUTTON_LEFT_ARROW))  ui.layouts[0].tLastInput = ui.time;
+	if (GameInput_ButtonDown(BUTTON_RIGHT_ARROW)) ui.layouts[0].tLastInput = ui.time;
 }

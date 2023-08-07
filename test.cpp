@@ -125,9 +125,7 @@ bool Test(Renderer* renderer_p, float deltaT)
 
 
 	//
-	UITextInput(NewRect(V2(-380,350), V2(200, 20)));
-	
-
+	UITextInput(NewRect(V2(-380,350), V2(200, 25)));
 
 	bool quit = false;
 	if (GameInput_Button(BUTTON_ESC))

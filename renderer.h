@@ -67,6 +67,12 @@ struct TextRendering
 	stbtt_bakedchar charUvData[96]; // ASCII 32..126 is 95 glyphs
 };
 
+struct TextCursor
+{
+	int index;
+	float xpos;
+};
+
 struct Renderer
 {
 	int groupCnt;
@@ -81,7 +87,7 @@ void SetSpritesOrtographicProj(Renderer* renderer_p, Rect rect);
 void SetWireframeOrtographicProj(Renderer* renderer_p, Rect rect);
 void PushSprite(Renderer* renderer_p, Vector2 pos, Vector2 size, Vector2 facingV, TextureHandleT textureHandle, Color color = COLOR_WHITE);
 void PushUiRect(Renderer* renderer_p, Rect rect, Color color);
-void PushText(Renderer* renderer_p, const char* text, Vector2 pos, Color color, float* finalPos_x = nullptr);
+void PushText(Renderer* renderer_p, const char* text, Vector2 pos, Color color, TextCursor* textCursor_p = nullptr);
 void PushRect(Renderer* renderer_p, Rect rect, Color color, Vector2 facingV  = VECTOR2_UP);
 void PushLine(Renderer* renderer_p, Vector2 startPos, Vector2 endPos, Color color, float thickness = 0.1f);
 void PushCircle(Renderer* renderer_p, Vector2 centerPos, float radius, Color color, int edges = 16);
