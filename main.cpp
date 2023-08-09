@@ -62,7 +62,9 @@ static void BindButtons()
 	GameInput_BindButton(BUTTON_ESC, GLFW_KEY_ESCAPE);
 	GameInput_BindButton(BUTTON_BACKSPACE, GLFW_KEY_BACKSPACE);
 	GameInput_BindButton(BUTTON_HOME, GLFW_KEY_HOME);
+	GameInput_BindButton(BUTTON_DEL, GLFW_KEY_DELETE);
 	GameInput_BindButton(BUTTON_END, GLFW_KEY_END);
+	GameInput_BindButton(BUTTON_LCTRL, GLFW_KEY_LEFT_CONTROL);
 }
 
 static float GetDeltaT()

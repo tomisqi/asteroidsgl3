@@ -1,5 +1,6 @@
 #include <string.h>
 #include <assert.h>
+#include <stdlib.h>
 #include "vector.h"
 #include "rect.h"
 #include "renderer.h"
@@ -15,7 +16,7 @@
 #define TEXT_INPUT_MAX_LENGTH       1 << 10
 #define MAX_TEXT_INPUTS             10
 
-#define ELAPSED(t2, t1) (t2 - t1)
+#define ELAPSED(t2, t1) fabs(t2 - t1)
 
 enum UIDirectionE : U8
 {
@@ -197,31 +198,47 @@ bool UIButton(const char* text, Rect rect)
 	return false;
 }
 
-static void ShiftStringToRight(char* s, int strLen, int index)
+static void InsertChar(char* str, int strLen, int index, char c)
 {
 	int charCnt = strLen - index;
-	char* new_p = &s[strLen];
-	char* old_p = &s[strLen-1];
+	char* new_p = &str[strLen];
+	char* old_p = &str[strLen-1];
 	for (int i = 0; i < charCnt; i++)
 	{
 		*new_p = *old_p;
 		new_p--;
 		old_p--;
 	}
+	str[index] = c;
 }
 
 
-static void ShiftStringToLeft(char* s, int strLen, int index)
+static void RemoveChar(char* str, int strLen, int index)
 {
 	int charCnt = strLen - index;
-	char* new_p = &s[index];
-	char* old_p = &s[index + 1];
+	char* new_p = &str[index];
+	char* old_p = &str[index + 1];
 	for (int i = 0; i < charCnt; i++)
 	{
 		*new_p = *old_p;
 		new_p++;
 		old_p++;
 	}
+	if (strLen) str[strLen-1] = '\0';
+}
+
+static void RemoveChars(char* str, int strLen, int startIdx, int endIdx)
+{
+	int charCnt = strLen - endIdx;
+	char* new_p = &str[startIdx];
+	char* old_p = &str[endIdx];
+	for (int i = 0; i < charCnt; i++)
+	{
+		*new_p = *old_p;
+		new_p++;
+		old_p++;
+	}
+	while (*new_p) {*new_p = '\0'; new_p++;}
 }
 
 void UICharCallback(unsigned int codepoint)
@@ -231,68 +248,133 @@ void UICharCallback(unsigned int codepoint)
 	int textInputActive = ui.layouts[0].textInputActive;
 	TextInputText* textInputText_p = &ui.layouts[0].textInputs[textInputActive];
 
-	int idx = textInputText_p->textBufLen++;
-	if (textInputText_p->cursorIdx != textInputText_p->textBufLen)
-	{
-		ShiftStringToRight(textInputText_p->textBuf, textInputText_p->textBufLen, textInputText_p->cursorIdx);
-		idx = textInputText_p->cursorIdx;
-	}
-
-	textInputText_p->textBuf[idx] = c;	
+	InsertChar(textInputText_p->textBuf, textInputText_p->textBufLen, textInputText_p->cursorIdx, c);
+	textInputText_p->textBufLen++;
 	textInputText_p->cursorIdx++;
+	textInputText_p->selectionEndIdx = textInputText_p->cursorIdx;
 }
 
 void UITextInput(Rect rect)
 {
-	PushUiRect(ui.renderer_p, rect, COLOR_CYAN);
-	PushUiRect(ui.renderer_p, ContractRect(rect, 5), Col(0.3f, 0.3f, 0.3f));
-
 	int textInputActive = ui.layouts[0].textInputActive;
 	TextInputText* textInputText_p = &ui.layouts[0].textInputs[textInputActive];
-
 	int prevCursorIdx = textInputText_p->cursorIdx;
 
+	// Backspace
 	bool holdingBackspace = GameInput_Button(BUTTON_BACKSPACE) && ELAPSED(ui.time, ui.layouts[0].tLastInput) >= 0.5f;
 	if ((GameInput_ButtonDown(BUTTON_BACKSPACE) || holdingBackspace) && (textInputText_p->textBufLen > 0) && (textInputText_p->cursorIdx > 0))
 	{
-		int idx = --textInputText_p->textBufLen;
-		if (textInputText_p->cursorIdx != textInputText_p->textBufLen)
+		if (textInputText_p->cursorIdx == textInputText_p->selectionEndIdx)
 		{
-			ShiftStringToLeft(textInputText_p->textBuf, textInputText_p->textBufLen, textInputText_p->cursorIdx-1);
+			RemoveChar(textInputText_p->textBuf, textInputText_p->textBufLen, textInputText_p->cursorIdx - 1);
+			textInputText_p->textBufLen--;
+			textInputText_p->cursorIdx--;
 		}
-		textInputText_p->textBuf[idx] = '\0';
-		textInputText_p->cursorIdx--;
-	}	
+		else
+		{
+			int startIdx = __min(textInputText_p->cursorIdx, textInputText_p->selectionEndIdx);
+			int endIdx = __max(textInputText_p->cursorIdx, textInputText_p->selectionEndIdx);
+			RemoveChars(textInputText_p->textBuf, textInputText_p->textBufLen, startIdx, endIdx);
+			textInputText_p->textBufLen -= (endIdx - startIdx);
+			textInputText_p->cursorIdx = startIdx;
+		}
+		textInputText_p->selectionEndIdx = textInputText_p->cursorIdx;
+	}
 
-	bool holdingLeftArrow  = GameInput_Button(BUTTON_LEFT_ARROW) && ELAPSED(ui.time, ui.layouts[0].tLastInput) >= 0.5f;
-	bool holdingRightArrow = GameInput_Button(BUTTON_RIGHT_ARROW) && ELAPSED(ui.time, ui.layouts[0].tLastInput) >= 0.5f;
-	if (GameInput_ButtonDown(BUTTON_HOME))                             textInputText_p->cursorIdx = 0;
-	if (GameInput_ButtonDown(BUTTON_END))                              textInputText_p->cursorIdx = textInputText_p->textBufLen;
-	if (GameInput_ButtonDown(BUTTON_LEFT_ARROW)  || holdingLeftArrow)  textInputText_p->cursorIdx--;
-	if (GameInput_ButtonDown(BUTTON_RIGHT_ARROW) || holdingRightArrow) textInputText_p->cursorIdx++;
+	// Del
+	bool holdingDel = GameInput_Button(BUTTON_DEL) && ELAPSED(ui.time, ui.layouts[0].tLastInput) >= 0.5f;
+	if ((GameInput_ButtonDown(BUTTON_DEL) || holdingDel) && (textInputText_p->textBufLen > 0) && (textInputText_p->cursorIdx <= textInputText_p->textBufLen))
+	{
+		if (textInputText_p->cursorIdx == textInputText_p->selectionEndIdx)
+		{
+			RemoveChar(textInputText_p->textBuf, textInputText_p->textBufLen, textInputText_p->cursorIdx);
+			textInputText_p->textBufLen--;
+		}
+		else
+		{
+			int startIdx = __min(textInputText_p->cursorIdx, textInputText_p->selectionEndIdx);
+			int endIdx = __max(textInputText_p->cursorIdx, textInputText_p->selectionEndIdx);
+			RemoveChars(textInputText_p->textBuf, textInputText_p->textBufLen, startIdx, endIdx);
+			textInputText_p->textBufLen -= (endIdx - startIdx);
+			textInputText_p->cursorIdx = startIdx;
+			textInputText_p->selectionEndIdx = startIdx;
+		}
+		// Don't move cursor here.
+	}
+
+	// Left arrow
+	bool holdingLeftArrow = GameInput_Button(BUTTON_LEFT_ARROW) && ELAPSED(ui.time, ui.layouts[0].tLastInput) >= 0.5f;
+	if (GameInput_ButtonDown(BUTTON_LEFT_ARROW) || holdingLeftArrow)
+	{
+		int newCursorIdx = textInputText_p->cursorIdx - 1;
+		if (GameInput_Button(BUTTON_LCTRL))
+		{
+			while (newCursorIdx > 0 && textInputText_p->textBuf[newCursorIdx] != ' ') { newCursorIdx--; }
+		}
+		textInputText_p->cursorIdx = newCursorIdx;
+	}
+
+	// Right arrow
+	bool holdingRightArrow = GameInput_Button(BUTTON_RIGHT_ARROW) && ELAPSED(ui.time, ui.layouts[0].tLastInput) >= 0.5f; 
+	if (GameInput_ButtonDown(BUTTON_RIGHT_ARROW) || holdingRightArrow)
+	{
+		int newCursorIdx = textInputText_p->cursorIdx + 1;
+		if (GameInput_Button(BUTTON_LCTRL))
+		{
+			while (newCursorIdx < textInputText_p->textBufLen && textInputText_p->textBuf[newCursorIdx] != ' ') { newCursorIdx++; }
+		}
+		textInputText_p->cursorIdx = newCursorIdx;
+	}
+
+	// Home
+	if (GameInput_ButtonDown(BUTTON_HOME))
+	{
+		textInputText_p->cursorIdx = 0;
+	}
+
+	// End
+	if (GameInput_ButtonDown(BUTTON_END))
+	{
+		textInputText_p->cursorIdx = textInputText_p->textBufLen;
+	}
+
+	// Holding shift
+	if (!GameInput_Button(BUTTON_LSHIFT) && (GameInput_ButtonDown(BUTTON_LEFT_ARROW) || GameInput_ButtonDown(BUTTON_RIGHT_ARROW) || GameInput_ButtonDown(BUTTON_HOME) || GameInput_ButtonDown(BUTTON_END)))
+	{
+		textInputText_p->selectionEndIdx = textInputText_p->cursorIdx;
+	}
+
 	textInputText_p->cursorIdx = Clamp(textInputText_p->cursorIdx, 0, textInputText_p->textBufLen);
 
-	if (!GameInput_Button(BUTTON_LSHIFT)) textInputText_p->selectionEndIdx = textInputText_p->cursorIdx;
+	// Last time pressed
+	if (GameInput_ButtonDown(BUTTON_BACKSPACE))	  ui.layouts[0].tLastInput = ui.time;
+	if (GameInput_ButtonDown(BUTTON_DEL))         ui.layouts[0].tLastInput = ui.time;
+	if (GameInput_ButtonDown(BUTTON_LEFT_ARROW))  ui.layouts[0].tLastInput = ui.time;
+	if (GameInput_ButtonDown(BUTTON_RIGHT_ARROW)) ui.layouts[0].tLastInput = ui.time;
 
+	// Text graphics
 	int cursorPeriodInFrames = TEXT_CURSOR_BLINKING_PERIOD / ui.deltaT;
 	PushText(ui.renderer_p, textInputText_p->textBuf, V2(rect.pos.x + 6, -(rect.pos.y + 6)), COLOR_WHITE);
 
+	// Text box graphics
+	PushUiRect(ui.renderer_p, rect, COLOR_CYAN); // Outline
+	PushUiRect(ui.renderer_p, ContractRect(rect, 5), Col(0.3f, 0.3f, 0.3f));
+
+	// Cursor graphics
 	float xpos = GetCharPosX(ui.renderer_p, rect.pos.x + 6, textInputText_p->textBuf, textInputText_p->cursorIdx);
 	bool cursorMoved = prevCursorIdx != textInputText_p->cursorIdx;
 	if (ui.frameCnt % cursorPeriodInFrames < (cursorPeriodInFrames / 2) || cursorMoved) 
 	{
-		PushUiRect(ui.renderer_p, NewRect(V2(xpos, rect.pos.y + 6), V2(1, rect.size.y - 12)), COLOR_WHITE); // Show cursor
+		PushUiRect(ui.renderer_p, NewRect(V2(xpos, rect.pos.y + 6), V2(1, rect.size.y - 12)), COLOR_WHITE);
 	}
+
+	// Selection graphics
 	if (textInputText_p->cursorIdx != textInputText_p->selectionEndIdx)
 	{
 		float endxpos = GetCharPosX(ui.renderer_p, rect.pos.x + 6, textInputText_p->textBuf, textInputText_p->selectionEndIdx);;
 		float minx = fmin(xpos, endxpos);
 		float maxx = fmax(xpos, endxpos);
 		float xsize = maxx - minx;
-		PushUiRect(ui.renderer_p, NewRect(V2(minx, rect.pos.y + 6), V2(xsize, rect.size.y - 12)), COLOR_BLUE); // Selection
+		PushUiRect(ui.renderer_p, NewRect(V2(minx, rect.pos.y + 6), V2(xsize, rect.size.y - 12)), COLOR_BLUE);
 	}
-
-	if (GameInput_ButtonDown(BUTTON_BACKSPACE))	  ui.layouts[0].tLastInput = ui.time;
-	if (GameInput_ButtonDown(BUTTON_LEFT_ARROW))  ui.layouts[0].tLastInput = ui.time;
-	if (GameInput_ButtonDown(BUTTON_RIGHT_ARROW)) ui.layouts[0].tLastInput = ui.time;
 }
