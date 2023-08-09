@@ -13,7 +13,6 @@
 
 #define MAX_LAYOUTS				    256
 #define TEXT_CURSOR_BLINKING_PERIOD 1.2f // The following periodicity: WHITE->TRANSPARENT->WHITE->TRANSPARENT-> etc..
-#define TEXT_INPUT_MAX_LENGTH       1 << 10
 #define MAX_TEXT_INPUTS             10
 
 #define ELAPSED(t2, t1) fabs(t2 - t1)
@@ -36,8 +35,7 @@ struct TextInputText
 {
 	int cursorIdx;
 	int selectionEndIdx;
-	int textBufLen;
-	char textBuf[TEXT_INPUT_MAX_LENGTH + 1];
+	char* textBuf_p;
 };
 
 struct LayoutData
@@ -247,35 +245,35 @@ void UICharCallback(unsigned int codepoint)
 
 	int textInputActive = ui.layouts[0].textInputActive;
 	TextInputText* textInputText_p = &ui.layouts[0].textInputs[textInputActive];
+	int textBufLen = strlen(textInputText_p->textBuf_p);
 
-	InsertChar(textInputText_p->textBuf, textInputText_p->textBufLen, textInputText_p->cursorIdx, c);
-	textInputText_p->textBufLen++;
+	InsertChar(textInputText_p->textBuf_p, textBufLen, textInputText_p->cursorIdx, c);
 	textInputText_p->cursorIdx++;
 	textInputText_p->selectionEndIdx = textInputText_p->cursorIdx;
 }
 
-void UITextInput(Rect rect)
+void UITextInput(Rect rect, char* textBuf)
 {
 	int textInputActive = ui.layouts[0].textInputActive;
 	TextInputText* textInputText_p = &ui.layouts[0].textInputs[textInputActive];
+	textInputText_p->textBuf_p = textBuf;
 	int prevCursorIdx = textInputText_p->cursorIdx;
+	int textLen = strlen(textBuf);
 
 	// Backspace
 	bool holdingBackspace = GameInput_Button(BUTTON_BACKSPACE) && ELAPSED(ui.time, ui.layouts[0].tLastInput) >= 0.5f;
-	if ((GameInput_ButtonDown(BUTTON_BACKSPACE) || holdingBackspace) && (textInputText_p->textBufLen > 0) && (textInputText_p->cursorIdx > 0))
+	if ((GameInput_ButtonDown(BUTTON_BACKSPACE) || holdingBackspace) && (textLen > 0) && (textInputText_p->cursorIdx > 0))
 	{
 		if (textInputText_p->cursorIdx == textInputText_p->selectionEndIdx)
 		{
-			RemoveChar(textInputText_p->textBuf, textInputText_p->textBufLen, textInputText_p->cursorIdx - 1);
-			textInputText_p->textBufLen--;
+			RemoveChar(textBuf, textLen, textInputText_p->cursorIdx - 1);
 			textInputText_p->cursorIdx--;
 		}
 		else
 		{
 			int startIdx = __min(textInputText_p->cursorIdx, textInputText_p->selectionEndIdx);
 			int endIdx = __max(textInputText_p->cursorIdx, textInputText_p->selectionEndIdx);
-			RemoveChars(textInputText_p->textBuf, textInputText_p->textBufLen, startIdx, endIdx);
-			textInputText_p->textBufLen -= (endIdx - startIdx);
+			RemoveChars(textBuf, textLen, startIdx, endIdx);
 			textInputText_p->cursorIdx = startIdx;
 		}
 		textInputText_p->selectionEndIdx = textInputText_p->cursorIdx;
@@ -283,19 +281,17 @@ void UITextInput(Rect rect)
 
 	// Del
 	bool holdingDel = GameInput_Button(BUTTON_DEL) && ELAPSED(ui.time, ui.layouts[0].tLastInput) >= 0.5f;
-	if ((GameInput_ButtonDown(BUTTON_DEL) || holdingDel) && (textInputText_p->textBufLen > 0) && (textInputText_p->cursorIdx <= textInputText_p->textBufLen))
+	if ((GameInput_ButtonDown(BUTTON_DEL) || holdingDel) && (textLen > 0) && (textInputText_p->cursorIdx <= textLen))
 	{
 		if (textInputText_p->cursorIdx == textInputText_p->selectionEndIdx)
 		{
-			RemoveChar(textInputText_p->textBuf, textInputText_p->textBufLen, textInputText_p->cursorIdx);
-			textInputText_p->textBufLen--;
+			RemoveChar(textBuf, textLen, textInputText_p->cursorIdx);
 		}
 		else
 		{
 			int startIdx = __min(textInputText_p->cursorIdx, textInputText_p->selectionEndIdx);
 			int endIdx = __max(textInputText_p->cursorIdx, textInputText_p->selectionEndIdx);
-			RemoveChars(textInputText_p->textBuf, textInputText_p->textBufLen, startIdx, endIdx);
-			textInputText_p->textBufLen -= (endIdx - startIdx);
+			RemoveChars(textBuf, textLen, startIdx, endIdx);			
 			textInputText_p->cursorIdx = startIdx;
 			textInputText_p->selectionEndIdx = startIdx;
 		}
@@ -309,7 +305,7 @@ void UITextInput(Rect rect)
 		int newCursorIdx = textInputText_p->cursorIdx - 1;
 		if (GameInput_Button(BUTTON_LCTRL))
 		{
-			while (newCursorIdx > 0 && textInputText_p->textBuf[newCursorIdx] != ' ') { newCursorIdx--; }
+			while (newCursorIdx > 0 && textBuf[newCursorIdx] != ' ') { newCursorIdx--; }
 		}
 		textInputText_p->cursorIdx = newCursorIdx;
 	}
@@ -321,7 +317,7 @@ void UITextInput(Rect rect)
 		int newCursorIdx = textInputText_p->cursorIdx + 1;
 		if (GameInput_Button(BUTTON_LCTRL))
 		{
-			while (newCursorIdx < textInputText_p->textBufLen && textInputText_p->textBuf[newCursorIdx] != ' ') { newCursorIdx++; }
+			while (newCursorIdx < textLen && textBuf[newCursorIdx] != ' ') { newCursorIdx++; }
 		}
 		textInputText_p->cursorIdx = newCursorIdx;
 	}
@@ -335,7 +331,7 @@ void UITextInput(Rect rect)
 	// End
 	if (GameInput_ButtonDown(BUTTON_END))
 	{
-		textInputText_p->cursorIdx = textInputText_p->textBufLen;
+		textInputText_p->cursorIdx = textLen;
 	}
 
 	// Holding shift
@@ -344,7 +340,7 @@ void UITextInput(Rect rect)
 		textInputText_p->selectionEndIdx = textInputText_p->cursorIdx;
 	}
 
-	textInputText_p->cursorIdx = Clamp(textInputText_p->cursorIdx, 0, textInputText_p->textBufLen);
+	textInputText_p->cursorIdx = Clamp(textInputText_p->cursorIdx, 0, textLen);
 
 	// Last time pressed
 	if (GameInput_ButtonDown(BUTTON_BACKSPACE))	  ui.layouts[0].tLastInput = ui.time;
@@ -354,14 +350,14 @@ void UITextInput(Rect rect)
 
 	// Text graphics
 	int cursorPeriodInFrames = TEXT_CURSOR_BLINKING_PERIOD / ui.deltaT;
-	PushText(ui.renderer_p, textInputText_p->textBuf, V2(rect.pos.x + 6, -(rect.pos.y + 6)), COLOR_WHITE);
+	PushText(ui.renderer_p, textBuf, V2(rect.pos.x + 6, -(rect.pos.y + 6)), COLOR_WHITE);
 
 	// Text box graphics
 	PushUiRect(ui.renderer_p, rect, COLOR_CYAN); // Outline
 	PushUiRect(ui.renderer_p, ContractRect(rect, 5), Col(0.3f, 0.3f, 0.3f));
 
 	// Cursor graphics
-	float xpos = GetCharPosX(ui.renderer_p, rect.pos.x + 6, textInputText_p->textBuf, textInputText_p->cursorIdx);
+	float xpos = GetCharPosX(ui.renderer_p, rect.pos.x + 6, textBuf, textInputText_p->cursorIdx);
 	bool cursorMoved = prevCursorIdx != textInputText_p->cursorIdx;
 	if (ui.frameCnt % cursorPeriodInFrames < (cursorPeriodInFrames / 2) || cursorMoved) 
 	{
@@ -371,7 +367,7 @@ void UITextInput(Rect rect)
 	// Selection graphics
 	if (textInputText_p->cursorIdx != textInputText_p->selectionEndIdx)
 	{
-		float endxpos = GetCharPosX(ui.renderer_p, rect.pos.x + 6, textInputText_p->textBuf, textInputText_p->selectionEndIdx);;
+		float endxpos = GetCharPosX(ui.renderer_p, rect.pos.x + 6, textBuf, textInputText_p->selectionEndIdx);;
 		float minx = fmin(xpos, endxpos);
 		float maxx = fmax(xpos, endxpos);
 		float xsize = maxx - minx;

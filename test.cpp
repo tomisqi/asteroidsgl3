@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "input.h"
 #include "test.h"
 #include "vector.h"
@@ -125,7 +126,8 @@ bool Test(Renderer* renderer_p, float deltaT)
 
 
 	//
-	UITextInput(NewRect(V2(-380,350), V2(200, 25)));
+	static char buf[32] = { 0 };
+	UITextInput(NewRect(V2(-380,350), V2(200, 25)), buf);
 
 	bool quit = false;
 	if (GameInput_Button(BUTTON_ESC))
