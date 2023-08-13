@@ -182,11 +182,9 @@ void PushUiRect(Renderer* renderer_p, Rect rect, Color color)
 	renderCmds_p->indexCount += 6;
 }
 
-float GetCharPosX(Renderer* renderer_p, float startPosX, const char* text, int charIdx)
+float GetCharPosX(stbtt_bakedchar* bakedCharData_p, float startPosX, const char* text, int charIdx)
 {
 	float posX = startPosX;
-	stbtt_bakedchar* bakedCharData_p = renderer_p->textRendering.charUvData;
-
 	float posY = 0; // Doesn't matter.
 	int idx = 0;
 	while (*text)

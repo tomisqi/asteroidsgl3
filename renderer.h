@@ -86,4 +86,4 @@ void PushRect(Renderer* renderer_p, Rect rect, Color color, Vector2 facingV  = V
 void PushLine(Renderer* renderer_p, Vector2 startPos, Vector2 endPos, Color color, float thickness = 0.1f);
 void PushCircle(Renderer* renderer_p, Vector2 centerPos, float radius, Color color, int edges = 16);
 void PushVector(Renderer* renderer_p, Vector2 pos, Vector2 v, Color color = COLOR_WHITE);
-float GetCharPosX(Renderer* renderer_p, float startPosX, const char* text, int charIdx);
+float GetCharPosX(stbtt_bakedchar* bakedCharData_p, float startPosX, const char* text, int charIdx);

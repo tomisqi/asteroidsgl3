@@ -128,7 +128,7 @@ int main(void)
 	GameInput_Init();
 	BindButtons();
 	ButtonState buttonStates[MAX_BUTTONS];
-	glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
+	//glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
 	glfwSetCharCallback(window, charCallback);
 
 	UIInit(&renderer);

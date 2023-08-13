@@ -9,6 +9,7 @@ enum MouseStateE : U8
 	MOUSE_RELEASED,
 	MOUSE_PRESSED,
 	MOUSE_PRESSED_HOLD,
+	MOUSE_DOUBLECLICK,
 };
 
 void UIInit(Renderer* renderer_p);
