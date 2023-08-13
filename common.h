@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <float.h>
 
 #define MB 1024*1024
 
@@ -9,6 +10,7 @@
 #define S64_MAX						INT64_MAX
 #define S16_MAX						INT16_MAX
 #define S32_MAX 					INT32_MAX
+#define F32_MAX                     FLT_MAX
 #define OFFSET_OF(_TYPE, _MEMBER)	((size_t)&(((_TYPE*)0)->_MEMBER))
 #define ARRAY_COUNT(A)				(sizeof(A) / sizeof(A[0]))
 

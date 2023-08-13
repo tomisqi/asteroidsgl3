@@ -114,20 +114,39 @@ bool Test(Renderer* renderer_p, float deltaT)
 	}
 
 	// Player
-	PushCircle(renderer_p, player.pos, player.radius, COLOR_GREEN, 64);
-	PushLine(renderer_p, player.pos, player.pos + player.radius*player.facingV, COLOR_CYAN);
+	//PushCircle(renderer_p, player.pos, player.radius, COLOR_GREEN, 64);
+	//PushLine(renderer_p, player.pos, player.pos + player.radius*player.facingV, COLOR_CYAN);
 
-	PushLine(renderer_p, line2.p1, line2.p2, COLOR_WHITE);
-	PushText(renderer_p, "p1", V2(line2.p1.x, -line2.p1.y), COLOR_CYAN);
+	//PushLine(renderer_p, line2.p1, line2.p2, COLOR_WHITE);
+	//PushText(renderer_p, "p1", V2(line2.p1.x, -line2.p1.y), COLOR_CYAN);
 
 	PushCircle(renderer_p, VECTOR2_ZERO, 2.0f, COLOR_WHITE); // origin
 
 	SetWireframeOrtographicProj(renderer_p, NewRectCenterPos(VECTOR2_ZERO, ScreenDim));
 
-
 	//
-	static char buf[32] = { 0 };
+	float angle = 0;
+	//angle += (6 * deltaT); if (angle >= 360) angle = 0;
+	static char buf[64] = { 0 };
+	//sprintf(buf, "%.02f", angle);
+
 	UITextInput(NewRect(V2(-380,350), V2(200, 25)), buf);
+	angle = atoi(buf);
+
+	static char buf2[64] = { 0 };
+	UITextInput(NewRect(V2(-380, 300), V2(200, 25)), buf2);
+
+	PushVector(renderer_p, V2(-200, 200), 100.0f * VECTOR2_RIGHT, COLOR_MAGENTA);
+	PushVector(renderer_p, V2(-200, 200), 100.0f * RotateDeg(VECTOR2_RIGHT, angle));
+
+	PushVector(renderer_p, V2(200, 200), 100.0f * VECTOR2_LEFT, COLOR_MAGENTA);
+	PushVector(renderer_p, V2(200, 200), 100.0f * RotateDeg(VECTOR2_LEFT, angle));
+
+	PushVector(renderer_p, V2(-200, -200), 100.0f * VECTOR2_UP, COLOR_MAGENTA);
+	PushVector(renderer_p, V2(-200, -200), 100.0f * RotateDeg(VECTOR2_UP, angle));
+
+	PushVector(renderer_p, V2(200, -200), 100.0f * VECTOR2_DOWN, COLOR_MAGENTA);
+	PushVector(renderer_p, V2(200, -200), 100.0f * RotateDeg(VECTOR2_DOWN, angle));
 
 	bool quit = false;
 	if (GameInput_Button(BUTTON_ESC))

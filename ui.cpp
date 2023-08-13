@@ -1,6 +1,7 @@
 #include <string.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include "vector.h"
 #include "rect.h"
 #include "renderer.h"
@@ -31,11 +32,12 @@ struct Mouse
 	Vector2 pos;
 };
 
-struct TextInputText
+struct TextInput
 {
 	int cursorIdx;
 	int selectionEndIdx;
 	char* textBuf_p;
+	Rect rect;
 };
 
 struct LayoutData
@@ -47,10 +49,6 @@ struct LayoutData
 	int buttonsCount;
 	S16 highlightedButtonIdx;
 	bool highlightedButtonConfirm;
-
-	int textInputActive;
-	double tLastInput;
-	TextInputText textInputs[MAX_TEXT_INPUTS];
 };
 
 struct UiContext
@@ -60,6 +58,11 @@ struct UiContext
 	S64 frameCnt;
 	float deltaT;
 	double time;
+
+	int textInputActive;
+	double tLastInput;
+	int textInputsCount;
+	TextInput textInputs[MAX_TEXT_INPUTS];
 
 	S64 activeLayoutId;
 	LayoutData layouts[MAX_LAYOUTS];
@@ -73,11 +76,11 @@ void UIInit(Renderer* renderer_p)
 	ui.renderer_p = renderer_p;
 	ui.activeLayoutId = S64_MAX;
 	ui.time = 0;
+	ui.textInputActive = -1;
 
 	for (int i = 0; i < MAX_LAYOUTS; i++)
 	{
 		ui.layouts[i].highlightedButtonIdx = -1;
-		ui.layouts[i].textInputActive = 0;
 	}
 }
 
@@ -116,6 +119,17 @@ void UINewFrame(Vector2 mousePosScreen, bool mouseIsPressed, Vector2 screenDim, 
 			if (!mouseMoved) ui.layouts[i].highlightedButtonIdx = prevHighlight; // If mouse hasn't moved, keep the prev highlight.
 		}
 	}
+
+	if (ui.mouse.state == MOUSE_PRESSED)
+	{
+		ui.textInputActive = -1;
+		for (int i = 0; i < ui.textInputsCount; i++)
+		{
+			Rect rect = ui.textInputs[i].rect;
+			if (RectContains(rect, ui.mouse.pos)) { ui.textInputActive = i; break; }
+		}
+	}
+	ui.textInputsCount = 0;
 
 #if 0
 	char mousepos[32] = { 0 };
@@ -243,25 +257,35 @@ void UICharCallback(unsigned int codepoint)
 {
 	char c = (char)codepoint;
 
-	int textInputActive = ui.layouts[0].textInputActive;
-	TextInputText* textInputText_p = &ui.layouts[0].textInputs[textInputActive];
-	int textBufLen = strlen(textInputText_p->textBuf_p);
+	if (ui.textInputActive >= 0)
+	{
+		TextInput* textInputText_p = &ui.textInputs[ui.textInputActive];
+		int textBufLen = strlen(textInputText_p->textBuf_p);
 
-	InsertChar(textInputText_p->textBuf_p, textBufLen, textInputText_p->cursorIdx, c);
-	textInputText_p->cursorIdx++;
-	textInputText_p->selectionEndIdx = textInputText_p->cursorIdx;
+		InsertChar(textInputText_p->textBuf_p, textBufLen, textInputText_p->cursorIdx, c);
+		textInputText_p->cursorIdx++;
+		textInputText_p->selectionEndIdx = textInputText_p->cursorIdx;
+	}
 }
 
 void UITextInput(Rect rect, char* textBuf)
 {
-	int textInputActive = ui.layouts[0].textInputActive;
-	TextInputText* textInputText_p = &ui.layouts[0].textInputs[textInputActive];
+	// Text and textbox graphics
+	PushText(ui.renderer_p, textBuf, V2(rect.pos.x + 6, -(rect.pos.y + 6)), COLOR_WHITE);
+	PushUiRect(ui.renderer_p, ContractRect(rect, 5), Col(0.3f, 0.3f, 0.3f));
+
+	int _this = ui.textInputsCount++;
+	TextInput* textInputText_p = &ui.textInputs[_this];
 	textInputText_p->textBuf_p = textBuf;
+	textInputText_p->rect = rect;
+
+	if (ui.textInputActive != _this) return;
+
 	int prevCursorIdx = textInputText_p->cursorIdx;
 	int textLen = strlen(textBuf);
 
 	// Backspace
-	bool holdingBackspace = GameInput_Button(BUTTON_BACKSPACE) && ELAPSED(ui.time, ui.layouts[0].tLastInput) >= 0.5f;
+	bool holdingBackspace = GameInput_Button(BUTTON_BACKSPACE) && ELAPSED(ui.time, ui.tLastInput) >= 0.5f;
 	if ((GameInput_ButtonDown(BUTTON_BACKSPACE) || holdingBackspace) && (textLen > 0) && (textInputText_p->cursorIdx > 0))
 	{
 		if (textInputText_p->cursorIdx == textInputText_p->selectionEndIdx)
@@ -280,7 +304,7 @@ void UITextInput(Rect rect, char* textBuf)
 	}
 
 	// Del
-	bool holdingDel = GameInput_Button(BUTTON_DEL) && ELAPSED(ui.time, ui.layouts[0].tLastInput) >= 0.5f;
+	bool holdingDel = GameInput_Button(BUTTON_DEL) && ELAPSED(ui.time, ui.tLastInput) >= 0.5f;
 	if ((GameInput_ButtonDown(BUTTON_DEL) || holdingDel) && (textLen > 0) && (textInputText_p->cursorIdx <= textLen))
 	{
 		if (textInputText_p->cursorIdx == textInputText_p->selectionEndIdx)
@@ -299,27 +323,27 @@ void UITextInput(Rect rect, char* textBuf)
 	}
 
 	// Left arrow
-	bool holdingLeftArrow = GameInput_Button(BUTTON_LEFT_ARROW) && ELAPSED(ui.time, ui.layouts[0].tLastInput) >= 0.5f;
+	bool holdingLeftArrow = GameInput_Button(BUTTON_LEFT_ARROW) && ELAPSED(ui.time, ui.tLastInput) >= 0.5f;
 	if (GameInput_ButtonDown(BUTTON_LEFT_ARROW) || holdingLeftArrow)
 	{
-		int newCursorIdx = textInputText_p->cursorIdx - 1;
+		int cursorIdx = textInputText_p->cursorIdx - 1;
 		if (GameInput_Button(BUTTON_LCTRL))
 		{
-			while (newCursorIdx > 0 && textBuf[newCursorIdx] != ' ') { newCursorIdx--; }
+			while (cursorIdx > 0 && isalnum(textBuf[cursorIdx-1])) { cursorIdx--; }
 		}
-		textInputText_p->cursorIdx = newCursorIdx;
+		textInputText_p->cursorIdx = cursorIdx;
 	}
 
 	// Right arrow
-	bool holdingRightArrow = GameInput_Button(BUTTON_RIGHT_ARROW) && ELAPSED(ui.time, ui.layouts[0].tLastInput) >= 0.5f; 
+	bool holdingRightArrow = GameInput_Button(BUTTON_RIGHT_ARROW) && ELAPSED(ui.time, ui.tLastInput) >= 0.5f; 
 	if (GameInput_ButtonDown(BUTTON_RIGHT_ARROW) || holdingRightArrow)
 	{
-		int newCursorIdx = textInputText_p->cursorIdx + 1;
+		int cursorIdx = textInputText_p->cursorIdx + 1;
 		if (GameInput_Button(BUTTON_LCTRL))
 		{
-			while (newCursorIdx < textLen && textBuf[newCursorIdx] != ' ') { newCursorIdx++; }
+			while (cursorIdx < textLen && isalnum(textBuf[cursorIdx])) { cursorIdx++; }
 		}
-		textInputText_p->cursorIdx = newCursorIdx;
+		textInputText_p->cursorIdx = cursorIdx;
 	}
 
 	// Home
@@ -334,32 +358,43 @@ void UITextInput(Rect rect, char* textBuf)
 		textInputText_p->cursorIdx = textLen;
 	}
 
-	// Holding shift
-	if (!GameInput_Button(BUTTON_LSHIFT) && (GameInput_ButtonDown(BUTTON_LEFT_ARROW) || GameInput_ButtonDown(BUTTON_RIGHT_ARROW) || GameInput_ButtonDown(BUTTON_HOME) || GameInput_ButtonDown(BUTTON_END)))
+	if (ui.mouse.state == MOUSE_PRESSED)
 	{
-		textInputText_p->selectionEndIdx = textInputText_p->cursorIdx;
+		float closestDist = F32_MAX;
+		int cursor = 0;
+		for (int i = 0; i <= textLen; i++)
+		{
+			float xpos = GetCharPosX(ui.renderer_p, rect.pos.x + 6, textBuf, i);
+			float dist = fabs(ui.mouse.pos.x - xpos);
+			if (dist < closestDist) { closestDist = dist; cursor = i;}
+		}
+		textInputText_p->cursorIdx = cursor;
 	}
 
 	textInputText_p->cursorIdx = Clamp(textInputText_p->cursorIdx, 0, textLen);
 
+	// Holding shift
+	if (!GameInput_Button(BUTTON_LSHIFT) && 
+		(GameInput_ButtonDown(BUTTON_LEFT_ARROW) || GameInput_ButtonDown(BUTTON_RIGHT_ARROW) || GameInput_ButtonDown(BUTTON_HOME) || GameInput_ButtonDown(BUTTON_END) || (ui.mouse.state == MOUSE_PRESSED)))
+	{
+		textInputText_p->selectionEndIdx = textInputText_p->cursorIdx;
+	}
+
 	// Last time pressed
-	if (GameInput_ButtonDown(BUTTON_BACKSPACE))	  ui.layouts[0].tLastInput = ui.time;
-	if (GameInput_ButtonDown(BUTTON_DEL))         ui.layouts[0].tLastInput = ui.time;
-	if (GameInput_ButtonDown(BUTTON_LEFT_ARROW))  ui.layouts[0].tLastInput = ui.time;
-	if (GameInput_ButtonDown(BUTTON_RIGHT_ARROW)) ui.layouts[0].tLastInput = ui.time;
+	if (GameInput_ButtonDown(BUTTON_BACKSPACE))	  ui.tLastInput = ui.time;
+	if (GameInput_ButtonDown(BUTTON_DEL))         ui.tLastInput = ui.time;
+	if (GameInput_ButtonDown(BUTTON_LEFT_ARROW))  ui.tLastInput = ui.time;
+	if (GameInput_ButtonDown(BUTTON_RIGHT_ARROW)) ui.tLastInput = ui.time;
 
-	// Text graphics
-	int cursorPeriodInFrames = TEXT_CURSOR_BLINKING_PERIOD / ui.deltaT;
-	PushText(ui.renderer_p, textBuf, V2(rect.pos.x + 6, -(rect.pos.y + 6)), COLOR_WHITE);
-
-	// Text box graphics
-	PushUiRect(ui.renderer_p, rect, COLOR_CYAN); // Outline
+	// Outline
+	PushUiRect(ui.renderer_p, rect, COLOR_CYAN);
 	PushUiRect(ui.renderer_p, ContractRect(rect, 5), Col(0.3f, 0.3f, 0.3f));
 
-	// Cursor graphics
+	// TextCursor graphics
+	int cursorPeriodInFrames = TEXT_CURSOR_BLINKING_PERIOD / ui.deltaT;
 	float xpos = GetCharPosX(ui.renderer_p, rect.pos.x + 6, textBuf, textInputText_p->cursorIdx);
 	bool cursorMoved = prevCursorIdx != textInputText_p->cursorIdx;
-	if (ui.frameCnt % cursorPeriodInFrames < (cursorPeriodInFrames / 2) || cursorMoved) 
+	if (ui.frameCnt % cursorPeriodInFrames < (cursorPeriodInFrames / 2) || cursorMoved)
 	{
 		PushUiRect(ui.renderer_p, NewRect(V2(xpos, rect.pos.y + 6), V2(1, rect.size.y - 12)), COLOR_WHITE);
 	}
@@ -373,4 +408,5 @@ void UITextInput(Rect rect, char* textBuf)
 		float xsize = maxx - minx;
 		PushUiRect(ui.renderer_p, NewRect(V2(minx, rect.pos.y + 6), V2(xsize, rect.size.y - 12)), COLOR_BLUE);
 	}
+
 }
