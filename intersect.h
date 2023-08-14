@@ -8,7 +8,6 @@ struct LineSegment
 	Vector2 p2;
 };
 
-
 static inline bool LineLineIntersect(LineSegment line1, LineSegment line2, Vector2& p)
 {
 	float x1 = line1.p1.x;
@@ -50,4 +49,19 @@ static inline bool LineCircleIntersect(LineSegment line, Vector2 circlePos, floa
 	LineLineIntersect(line, lineCircle, p);
 
 	return p.x != U16_MAX || p.y != U16_MAX;
+}
+
+static inline Vector2 GetNormal(LineSegment line, Vector2 p)
+{
+	Vector2 normal = RotateDeg(Normalize(line.p1 - line.p2), 90);
+	if (Dot(normal, p - line.p1) < 0) normal = -normal;
+	return normal;
+}
+
+static inline Vector2 GetCenterP(LineSegment line)
+{
+	Vector2 v = Normalize(line.p1 - line.p2);
+	float len = Magnitude(line.p1 - line.p2);
+	Vector2 centerP = line.p2 + len / 2 * v;
+	return centerP;
 }

@@ -202,7 +202,7 @@ static void EntityLevelCollisions(CollisionEntities* entities_p, float deltaT, L
 				case ENTITY_BULLET:
 				{
 					Entity* bullet_p = entity_p;
-					Vector2 normal = -RotateDeg(Normalize(solidLine.p1 - solidLine.p2), 90);
+					Vector2 normal = GetNormal(solidLine, bullet_p->pos);
 					float angle = AngleDeg(bullet_p->vel, normal);
 					bullet_p->vel = RotateDeg(bullet_p->vel, -2*angle);
 					//bullet_p->vel = BULLET_SPEED * normal;

@@ -19,7 +19,7 @@ extern Vector2 ScreenDim;
 
 //static LineSegment line1 = { V2(-100, 0), V2(-300, 0) };
 static LineSegment line2 = { V2( 100, 200), V2( 100, -200) };
-static Player player = {V2(-100, 0), VECTOR2_UP, 75};
+static Player player = {V2(-100, 0), VECTOR2_UP, 10};
 
 static void MoveLine(LineSegment* line_p, Vector2 v, float deltaT)
 {
@@ -31,7 +31,7 @@ static void RotateLine(LineSegment* line_p, float angleDeg)
 {
 	Vector2 v = Normalize(line_p->p1 - line_p->p2);
 	float len = Magnitude(line_p->p1 - line_p->p2);
-	Vector2 centerP = line_p->p2 + len / 2 * v;
+	Vector2 centerP = GetCenterP(*line_p);
 	v = RotateDeg(v, angleDeg);
 	line_p->p1 = centerP + len / 2 * v;
 	line_p->p2 = centerP - len / 2 * v;
@@ -114,28 +114,27 @@ bool Test(Renderer* renderer_p, float deltaT)
 	}
 
 	// Player
-	//PushCircle(renderer_p, player.pos, player.radius, COLOR_GREEN, 64);
-	//PushLine(renderer_p, player.pos, player.pos + player.radius*player.facingV, COLOR_CYAN);
+	PushCircle(renderer_p, player.pos, player.radius, COLOR_GREEN, 64);
+	PushLine(renderer_p, player.pos, player.pos + player.radius*player.facingV, COLOR_CYAN);
 
-	//PushLine(renderer_p, line2.p1, line2.p2, COLOR_WHITE);
-	//PushText(renderer_p, "p1", V2(line2.p1.x, -line2.p1.y), COLOR_CYAN);
+	PushLine(renderer_p, line2.p1, line2.p2, COLOR_WHITE);
+	PushText(renderer_p, "p1", V2(line2.p1.x, -line2.p1.y), COLOR_CYAN);
 
 	PushCircle(renderer_p, VECTOR2_ZERO, 2.0f, COLOR_WHITE); // origin
 
-	SetWireframeOrtographicProj(renderer_p, NewRectCenterPos(VECTOR2_ZERO, ScreenDim));
+	PushVector(renderer_p, GetCenterP(line2), 50.0f*GetNormal(line2, player.pos), COLOR_MAGENTA);
 
 	//
 	float angle = 0;
 	//angle += (6 * deltaT); if (angle >= 360) angle = 0;
 	static char buf[64] = { 0 };
-	//sprintf(buf, "%.02f", angle);
 
 	UITextInput(NewRect(V2(-380,350), V2(200, 25)), buf);
 	angle = atoi(buf);
 
 	static char buf2[64] = { 0 };
 	UITextInput(NewRect(V2(-380, 300), V2(200, 25)), buf2);
-
+#if 0
 	PushVector(renderer_p, V2(-200, 200), 100.0f * VECTOR2_RIGHT, COLOR_MAGENTA);
 	PushVector(renderer_p, V2(-200, 200), 100.0f * RotateDeg(VECTOR2_RIGHT, angle));
 
@@ -147,6 +146,9 @@ bool Test(Renderer* renderer_p, float deltaT)
 
 	PushVector(renderer_p, V2(200, -200), 100.0f * VECTOR2_DOWN, COLOR_MAGENTA);
 	PushVector(renderer_p, V2(200, -200), 100.0f * RotateDeg(VECTOR2_DOWN, angle));
+#endif
+
+	SetWireframeOrtographicProj(renderer_p, NewRectCenterPos(VECTOR2_ZERO, ScreenDim));
 
 	bool quit = false;
 	if (GameInput_Button(BUTTON_ESC))
