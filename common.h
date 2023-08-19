@@ -28,3 +28,4 @@ struct Buffer
 	U64 bufSize;
 };
 
+#define ELAPSED(t2, t1) fabs(t2 - t1)

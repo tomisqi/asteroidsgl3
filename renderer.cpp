@@ -22,9 +22,12 @@ static U8 ttfBuffer[1 << 20];
 static RenderGroup CreateRendererGroup(RenderGroupTypeE rendererGroupType, int shaderProgram, int maxQuads, bool onlyColored = false);
 static RenderGroup* FindRenderGroup(Renderer* renderer_p, RenderGroupTypeE rendererGroupType);
 
+Renderer* rendererGl_p = nullptr;
+
 void RendererInit(Renderer* renderer_p)
 {
 	memset(renderer_p, 0, sizeof(*renderer_p));
+	rendererGl_p = renderer_p;
 
 	//
 	// Render groups

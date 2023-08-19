@@ -16,21 +16,12 @@
 #define TEXT_CURSOR_BLINKING_PERIOD 1.2f // The following periodicity: WHITE->TRANSPARENT->WHITE->TRANSPARENT-> etc..
 #define MAX_TEXT_INPUTS             10
 
-#define ELAPSED(t2, t1) fabs(t2 - t1)
-
 enum UIDirectionE : U8
 {
 	UI_DOWN,
 	UI_LEFT,
 	UI_UP,
 	UI_RIGHT,
-};
-
-struct Mouse
-{
-	MouseStateE state;
-	Vector2 pos;
-	int tLastPress;
 };
 
 struct TextInput
@@ -54,7 +45,6 @@ struct LayoutData
 
 struct UiContext
 {
-	Mouse mouse;
 	Renderer* renderer_p;
 	S64 frameCnt;
 	float deltaT;
@@ -84,31 +74,15 @@ void UIInit(Renderer* renderer_p)
 		ui.layouts[i].highlightedButtonIdx = -1;
 	}
 }
-
-void UINewFrame(Vector2 mousePosScreen, bool mouseIsPressed, Vector2 screenDim, float deltaT)
+//#include "renderer.h"
+//extern Renderer* rendererGl_p;
+void UINewFrame(float deltaT)
 {
 	ui.frameCnt++;
 	ui.deltaT = deltaT;
 	ui.time += deltaT;
 
-	MouseStateE prevState = ui.mouse.state;
-	ui.mouse.state = MOUSE_RELEASED;
-	if (mouseIsPressed)
-	{ 
-		ui.mouse.state = MOUSE_PRESSED_HOLD;
-		if (prevState == MOUSE_RELEASED)
-		{
-			ui.mouse.state = MOUSE_PRESSED;
-			if (ELAPSED(ui.time, ui.mouse.tLastPress) < 0.7f) ui.mouse.state = MOUSE_DOUBLECLICK;
-			ui.mouse.tLastPress = ui.time;
-		}
-	}
-
-	// MousePosScreen comes as (0,0) to (screnDim.x, screenDim.y). Transform into worldPos
-	Vector2 prevMousePos = ui.mouse.pos;
-	ui.mouse.pos = V2(mousePosScreen.x - screenDim.x / 2, screenDim.y / 2 - mousePosScreen.y);
-	bool mouseMoved = (prevMousePos != ui.mouse.pos);
-
+	Mouse mouse = GameInput_GetMouse();
 	for (int i = 0; i < MAX_LAYOUTS; i++)
 	{
 		if (ui.layouts[i].layoutActive)
@@ -119,31 +93,39 @@ void UINewFrame(Vector2 mousePosScreen, bool mouseIsPressed, Vector2 screenDim, 
 
 			S16 prevHighlight = ui.layouts[i].highlightedButtonIdx;
 			ui.layouts[i].highlightedButtonIdx = -1;
-			if (!mouseMoved) ui.layouts[i].highlightedButtonIdx = prevHighlight; // If mouse hasn't moved, keep the prev highlight.
+			if (!mouse.mouseMoved) ui.layouts[i].highlightedButtonIdx = prevHighlight; // If mouse hasn't moved, keep the prev highlight.
 		}
 	}
 
-	if (ui.mouse.state == MOUSE_PRESSED)
+	if (mouse.state == MOUSE_PRESSED)
 	{
 		ui.textInputActive = -1;
 		for (int i = 0; i < ui.textInputsCount; i++)
 		{
 			Rect rect = ui.textInputs[i].rect;
-			if (RectContains(rect, ui.mouse.pos)) { ui.textInputActive = i; break; }
+			if (RectContains(rect, mouse.pos)) 
+			{ 
+				ui.textInputActive = i; 
+			break; }
 		}
 	}
 	ui.textInputsCount = 0;
+	
 
 #if 0
+	char buf[32] = { 0 };
+	sprintf(buf, "(%.2f, %.2f)", mouse.pos.x, mouse.pos.y);
+	PushText(rendererGl_p, buf, V2(-50, -200), COLOR_WHITE);
+
 	char mousepos[32] = { 0 };
 	sprintf(mousepos, "(%.2f, %.2f)", ui.mouse.pos.x, ui.mouse.pos.y);
 	PushText(ui.renderer_p, mousepos, VECTOR2_ZERO);
 
 	char mousestate[32] = { 0 };
-	if (ui.mouse.state == MOUSE_RELEASED) sprintf(mousestate, "%s", "RELEASED");
-	if (ui.mouse.state == MOUSE_PRESSED_HOLD) sprintf(mousestate, "%s", "HOLD");
-	if (ui.mouse.state == MOUSE_PRESSED) sprintf(mousestate, "%s", "PRESSED");
-	if (ui.mouse.state == MOUSE_DOUBLECLICK) sprintf(mousestate, "%s", "DOUBLECLICK");
+	if (mouse.state == MOUSE_RELEASED) sprintf(mousestate, "%s", "RELEASED");
+	if (mouse.state == MOUSE_PRESSED_HOLD) sprintf(mousestate, "%s", "HOLD");
+	if (mouse.state == MOUSE_PRESSED) sprintf(mousestate, "%s", "PRESSED");
+	if (mouse.state == MOUSE_DOUBLECLICK) sprintf(mousestate, "%s", "\n\nDOUBLECLICK\n\n");
 	printf("%s ", mousestate);
 #endif
 }
@@ -167,7 +149,8 @@ void UILayout(const char* name)
 
 	if (!layout_p->layoutDone) return;
 
-	if (ui.mouse.state == MOUSE_PRESSED || GameInput_ButtonDown(BUTTON_ENTER))
+	Mouse mouse = GameInput_GetMouse();
+	if (mouse.state == MOUSE_PRESSED || GameInput_ButtonDown(BUTTON_ENTER))
 	{
 		layout_p->highlightedButtonConfirm = true;
 	}
@@ -190,7 +173,8 @@ bool UIButton(const char* text, Rect rect)
 	
 	S16 buttonIdx = layout_p->buttonIdx++;
 
-	if (RectContains(rect, ui.mouse.pos))
+	Mouse mouse = GameInput_GetMouse();
+	if (RectContains(rect, mouse.pos))
 	{
 		layout_p->highlightedButtonIdx = buttonIdx;
 	}
@@ -269,11 +253,6 @@ static int FindClosestCharIdx(char* textBuf, int textLen, float startPosX, float
 		else break;
 	}
 	return charIdx;
-}
-
-static float GetMouseHoldTime()
-{
-	return ui.time - ui.mouse.tLastPress;
 }
 
 void UICharCallback(unsigned int codepoint)
@@ -381,18 +360,19 @@ void UITextInput(Rect rect, char* textBuf)
 		textInputText_p->cursorIdx = textLen;
 	}
 
-	if (ui.mouse.state == MOUSE_PRESSED)
+	Mouse mouse = GameInput_GetMouse();
+	if (mouse.state == MOUSE_PRESSED)
 	{
-		int cursorIdx = FindClosestCharIdx(textBuf, textLen, rect.pos.x + 6, ui.mouse.pos.x);
+		int cursorIdx = FindClosestCharIdx(textBuf, textLen, rect.pos.x + 6, mouse.pos.x);
 		textInputText_p->cursorIdx = cursorIdx;
 		textInputText_p->selectionEndIdx = cursorIdx;
-	}
-	
-	if (ui.mouse.state == MOUSE_PRESSED_HOLD)
+	}	
+	if (mouse.state == MOUSE_PRESSED_HOLD)
 	{
-		int cursorIdx = FindClosestCharIdx(textBuf, textLen, rect.pos.x + 6, ui.mouse.pos.x);
+		int cursorIdx = FindClosestCharIdx(textBuf, textLen, rect.pos.x + 6, mouse.pos.x);
 		textInputText_p->cursorIdx = cursorIdx;
 	}
+
 #if 0
 	if (ui.mouse.state == MOUSE_DOUBLECLICK)
 	{

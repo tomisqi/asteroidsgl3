@@ -1,4 +1,6 @@
 #include "input.h"
+#include "common.h"
+#include "string.h"
 
 static GameInput gameInput;
 
@@ -16,14 +18,35 @@ bool GameInput_Button(ButtonVal buttonVal)
 
 void GameInput_Init()
 {
+	memset(&gameInput, 0, sizeof(gameInput));
+	gameInput.time = 0;
 	for (int i = 0; i < MAX_BUTTONS; i++)
 	{
 		gameInput.buttons[i].state = RELEASED;
 	}
 }
 
-void GameInput_NewFrame(ButtonState newButtonStates[])
+void GameInput_NewFrame(ButtonState newButtonStates[], bool mouseIsPressed, Vector2 mousePosScreen, Vector2 screenDim, float deltaT)
 {
+	gameInput.time += deltaT;
+
+	MouseStateE prevState = gameInput.mouse.state;
+	gameInput.mouse.state = MOUSE_RELEASED;
+	if (mouseIsPressed)
+	{
+		gameInput.mouse.state = MOUSE_PRESSED_HOLD;
+		if (prevState == MOUSE_RELEASED)
+		{
+			gameInput.mouse.state = MOUSE_PRESSED;
+			if (ELAPSED(gameInput.time, gameInput.mouse.tLastPress) < 0.2f) gameInput.mouse.state = MOUSE_DOUBLECLICK;
+			gameInput.mouse.tLastPress = gameInput.time;
+		}
+	}
+	// MousePosScreen comes as (0,0) to (screnDim.x, screenDim.y). Transform into worldPos
+	Vector2 prevMousePos = gameInput.mouse.pos;
+	gameInput.mouse.pos = V2(mousePosScreen.x - screenDim.x / 2, screenDim.y / 2 - mousePosScreen.y);
+	gameInput.mouse.mouseMoved = (prevMousePos != gameInput.mouse.pos);
+
 	for (int i = 0; i < MAX_BUTTONS; i++)
 	{
 		gameInput.buttons[i].prevState = gameInput.buttons[i].state;
@@ -41,4 +64,9 @@ void GameInput_BindButton(ButtonVal buttonVal, int platformVal)
 int GameInput_GetBinding(int buttonIdx)
 {
 	return gameInput.buttonBindings[buttonIdx];
+}
+
+Mouse GameInput_GetMouse()
+{
+	return gameInput.mouse;
 }

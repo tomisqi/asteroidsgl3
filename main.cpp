@@ -128,7 +128,7 @@ int main(void)
 	GameInput_Init();
 	BindButtons();
 	ButtonState buttonStates[MAX_BUTTONS];
-	//glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
+	glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
 	glfwSetCharCallback(window, charCallback);
 
 	UIInit(&renderer);
@@ -139,11 +139,12 @@ int main(void)
 	  {
 	    buttonStates[i] = (ButtonState) glfwGetKey(window, GameInput_GetBinding(i));
 	  }
-	  GameInput_NewFrame(buttonStates);
 
 	  double mouseXpos, mouseYpos;
 	  glfwGetCursorPos(window, &mouseXpos, &mouseYpos);
-	  UINewFrame(V2(mouseXpos, mouseYpos), glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS, ScreenDim, GetDeltaT());
+	  GameInput_NewFrame(buttonStates, glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS, V2(mouseXpos, mouseYpos), ScreenDim, GetDeltaT());
+
+	  UINewFrame(GetDeltaT());
 
 	  //bool quit = GameUpdateAndRender(GetDeltaT(), &renderer);
 	  bool quit = Test(&renderer, GetDeltaT());
