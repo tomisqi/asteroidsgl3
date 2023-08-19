@@ -179,10 +179,10 @@ static void EntityEntityCollisions(CollisionEntities* collisions_p)
 	}
 }
 
-static void AddForce(Vector2 f, Entity* entity_p, float deltaT)
+static void AddForce(Entity* entity_p, Vector2 force, float deltaT)
 {
 	const float mass = 1.0f;
-	entity_p->vel = (deltaT/mass) * f ;
+	entity_p->vel = (deltaT/mass) * force;
 }
 
 static void EntityLevelCollisions(CollisionEntities* entities_p, float deltaT, Level* level_p)
@@ -203,21 +203,17 @@ static void EntityLevelCollisions(CollisionEntities* entities_p, float deltaT, L
 				{
 					Entity* bullet_p = entity_p;
 					Vector2 normal = GetNormal(solidLine, bullet_p->pos);
-					float angle = AngleDeg(bullet_p->vel, normal);
-					bullet_p->vel = RotateDeg(bullet_p->vel, -2*angle);
-					//bullet_p->vel = BULLET_SPEED * normal;
-					//bullet_p->pos += 4 * deltaT * bullet_p->vel;
-
-//					bullet_p->enabled = false;
+					float angle = AngleDegRel(-bullet_p->vel, normal);
+					bullet_p->vel = RotateDeg(-bullet_p->vel, 2 * angle);
+					bullet_p->facingV = Normalize(bullet_p->vel);
 					break;
 				}
 				case ENTITY_PLAYERSPACESHIP:
 				{
 					Entity* ship_p = entity_p;
-					Vector2 v = Normalize(p - ship_p->pos);
-					//Vector2 v = Normalize(RotateDeg(ship_p->vel, 90));
-					Vector2 force = -100000 * v;
-					AddForce(force, ship_p, deltaT);
+					Vector2 normal = GetNormal(solidLine, ship_p->pos);
+					float angle = AngleDegRel(-ship_p->vel, normal);
+					ship_p->vel = RotateDeg(-ship_p->vel, 2 * angle);
 					break;
 				}
 				default:

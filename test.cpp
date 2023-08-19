@@ -18,7 +18,7 @@ struct Player
 extern Vector2 ScreenDim;
 
 //static LineSegment line1 = { V2(-100, 0), V2(-300, 0) };
-static LineSegment line2 = { V2( 100, 200), V2( 100, -200) };
+static LineSegment line2 = { V2( 0, 100), V2( 0, -100) };
 static Player player = {V2(-100, 0), VECTOR2_UP, 10};
 
 static void MoveLine(LineSegment* line_p, Vector2 v, float deltaT)
@@ -123,6 +123,10 @@ bool Test(Renderer* renderer_p, float deltaT)
 	PushCircle(renderer_p, VECTOR2_ZERO, 2.0f, COLOR_WHITE); // origin
 
 	PushVector(renderer_p, GetCenterP(line2), 50.0f*GetNormal(line2, player.pos), COLOR_MAGENTA);
+
+	PushVector(renderer_p, VECTOR2_ZERO, 50.0f * VECTOR2_UP, COLOR_MAGENTA);
+
+	//printf("%.02f\n", AngleDegRel(VECTOR2_UP, line2.p1 - line2.p2));
 
 	//
 	float angle = 0;
