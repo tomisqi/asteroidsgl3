@@ -143,7 +143,8 @@ void UINewFrame(Vector2 mousePosScreen, bool mouseIsPressed, Vector2 screenDim, 
 	if (ui.mouse.state == MOUSE_RELEASED) sprintf(mousestate, "%s", "RELEASED");
 	if (ui.mouse.state == MOUSE_PRESSED_HOLD) sprintf(mousestate, "%s", "HOLD");
 	if (ui.mouse.state == MOUSE_PRESSED) sprintf(mousestate, "%s", "PRESSED");
-	PushText(ui.renderer_p, mousestate, VECTOR2_ZERO);
+	if (ui.mouse.state == MOUSE_DOUBLECLICK) sprintf(mousestate, "%s", "DOUBLECLICK");
+	printf("%s ", mousestate);
 #endif
 }
 
@@ -265,8 +266,14 @@ static int FindClosestCharIdx(char* textBuf, int textLen, float startPosX, float
 		float xposChar = GetCharPosX(ui.renderer_p->textRendering.charUvData, startPosX, textBuf, i);
 		float dist = fabs(xposChar - xpos);
 		if (dist < closestDist) { closestDist = dist; charIdx = i; }
+		else break;
 	}
 	return charIdx;
+}
+
+static float GetMouseHoldTime()
+{
+	return ui.time - ui.mouse.tLastPress;
 }
 
 void UICharCallback(unsigned int codepoint)
@@ -290,12 +297,12 @@ void UITextInput(Rect rect, char* textBuf)
 	PushText(ui.renderer_p, textBuf, V2(rect.pos.x + 6, -(rect.pos.y + 6)), COLOR_WHITE);
 	PushUiRect(ui.renderer_p, ContractRect(rect, 5), Col(0.3f, 0.3f, 0.3f));
 
-	int _this = ui.textInputsCount++;
-	TextInput* textInputText_p = &ui.textInputs[_this];
+	int thisone = ui.textInputsCount++;
+	TextInput* textInputText_p = &ui.textInputs[thisone];
 	textInputText_p->textBuf_p = textBuf;
 	textInputText_p->rect = rect;
 
-	if (ui.textInputActive != _this) return;
+	if (ui.textInputActive != thisone) return;
 
 	int prevCursorIdx = textInputText_p->cursorIdx;
 	int textLen = strlen(textBuf);
@@ -380,7 +387,13 @@ void UITextInput(Rect rect, char* textBuf)
 		textInputText_p->cursorIdx = cursorIdx;
 		textInputText_p->selectionEndIdx = cursorIdx;
 	}
-
+	
+	if (ui.mouse.state == MOUSE_PRESSED_HOLD)
+	{
+		int cursorIdx = FindClosestCharIdx(textBuf, textLen, rect.pos.x + 6, ui.mouse.pos.x);
+		textInputText_p->cursorIdx = cursorIdx;
+	}
+#if 0
 	if (ui.mouse.state == MOUSE_DOUBLECLICK)
 	{
 		int cursorIdx = FindClosestCharIdx(textBuf, textLen, rect.pos.x + 6, ui.mouse.pos.x);
@@ -390,12 +403,12 @@ void UITextInput(Rect rect, char* textBuf)
 		textInputText_p->cursorIdx = cursorIdx;
 		textInputText_p->selectionEndIdx = selectionEndIdx;
 	}
-
+#endif
 	textInputText_p->cursorIdx = Clamp(textInputText_p->cursorIdx, 0, textLen);
 
 	// Holding shift
 	if (!GameInput_Button(BUTTON_LSHIFT) && 
-		(GameInput_ButtonDown(BUTTON_LEFT_ARROW) || GameInput_ButtonDown(BUTTON_RIGHT_ARROW) || GameInput_ButtonDown(BUTTON_HOME) || GameInput_ButtonDown(BUTTON_END)))
+		(GameInput_ButtonDown(BUTTON_LEFT_ARROW) || GameInput_ButtonDown(BUTTON_RIGHT_ARROW) || GameInput_ButtonDown(BUTTON_HOME) || GameInput_ButtonDown(BUTTON_END) || holdingLeftArrow || holdingRightArrow))
 	{
 		textInputText_p->selectionEndIdx = textInputText_p->cursorIdx;
 	}
@@ -406,11 +419,11 @@ void UITextInput(Rect rect, char* textBuf)
 	if (GameInput_ButtonDown(BUTTON_LEFT_ARROW))  ui.tLastInput = ui.time;
 	if (GameInput_ButtonDown(BUTTON_RIGHT_ARROW)) ui.tLastInput = ui.time;
 
-	// Outline
+	// TextBox and outline
 	PushUiRect(ui.renderer_p, rect, COLOR_CYAN);
 	PushUiRect(ui.renderer_p, ContractRect(rect, 5), Col(0.3f, 0.3f, 0.3f));
 
-	// TextCursor graphics
+	// Text cursor graphics
 	int cursorPeriodInFrames = TEXT_CURSOR_BLINKING_PERIOD / ui.deltaT;
 	float xpos = GetCharPosX(ui.renderer_p->textRendering.charUvData, rect.pos.x + 6, textBuf, textInputText_p->cursorIdx);
 	bool cursorMoved = prevCursorIdx != textInputText_p->cursorIdx;
@@ -426,7 +439,7 @@ void UITextInput(Rect rect, char* textBuf)
 		float minx = fmin(xpos, endxpos);
 		float maxx = fmax(xpos, endxpos);
 		float xsize = maxx - minx;
-		PushUiRect(ui.renderer_p, NewRect(V2(minx, rect.pos.y + 6), V2(xsize, rect.size.y - 12)), COLOR_BLUE);
+		PushUiRect(ui.renderer_p, NewRect(V2(minx, rect.pos.y + 3), V2(xsize, rect.size.y - 9)), COLOR_BLUE);
 	}
 
 }
