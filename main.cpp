@@ -144,10 +144,10 @@ int main(void)
 	  glfwGetCursorPos(window, &mouseXpos, &mouseYpos);
 	  GameInput_NewFrame(buttonStates, glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS, V2(mouseXpos, mouseYpos), ScreenDim, GetDeltaT());
 
-	  UINewFrame(GetDeltaT());
+	  UINewFrame(GetDeltaT(), ScreenDim);
 
-	  //bool quit = GameUpdateAndRender(GetDeltaT(), &renderer);
-	  bool quit = Test(&renderer, GetDeltaT());
+	  bool quit = GameUpdateAndRender(GetDeltaT(), &renderer);
+	  //bool quit = Test(&renderer, GetDeltaT());
 	  // @temp --->
 #if 0
 	  static Vector2 facingV = VECTOR2_UP;

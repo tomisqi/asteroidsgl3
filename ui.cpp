@@ -49,6 +49,7 @@ struct UiContext
 	S64 frameCnt;
 	float deltaT;
 	double time;
+	Vector2 screenDim;
 
 	int textInputActive;
 	double tLastInput;
@@ -74,15 +75,25 @@ void UIInit(Renderer* renderer_p)
 		ui.layouts[i].highlightedButtonIdx = -1;
 	}
 }
+
+static Mouse GetUiMouse()
+{
+	Mouse mouse = GameInput_GetMouse();
+	mouse.pos = V2(mouse.pos.x - ui.screenDim.x / 2, mouse.pos.y - ui.screenDim.y / 2); // Fix position.
+	return mouse;
+}
+
 //#include "renderer.h"
 //extern Renderer* rendererGl_p;
-void UINewFrame(float deltaT)
+void UINewFrame(float deltaT, Vector2 screenDim)
 {
 	ui.frameCnt++;
 	ui.deltaT = deltaT;
 	ui.time += deltaT;
+	ui.screenDim = screenDim;
 
-	Mouse mouse = GameInput_GetMouse();
+	Mouse mouse = GetUiMouse();
+
 	for (int i = 0; i < MAX_LAYOUTS; i++)
 	{
 		if (ui.layouts[i].layoutActive)
@@ -96,7 +107,6 @@ void UINewFrame(float deltaT)
 			if (!mouse.mouseMoved) ui.layouts[i].highlightedButtonIdx = prevHighlight; // If mouse hasn't moved, keep the prev highlight.
 		}
 	}
-
 	if (mouse.state == MOUSE_PRESSED)
 	{
 		ui.textInputActive = -1;
@@ -149,7 +159,7 @@ void UILayout(const char* name)
 
 	if (!layout_p->layoutDone) return;
 
-	Mouse mouse = GameInput_GetMouse();
+	Mouse mouse = GetUiMouse();
 	if (mouse.state == MOUSE_PRESSED || GameInput_ButtonDown(BUTTON_ENTER))
 	{
 		layout_p->highlightedButtonConfirm = true;
@@ -173,7 +183,7 @@ bool UIButton(const char* text, Rect rect)
 	
 	S16 buttonIdx = layout_p->buttonIdx++;
 
-	Mouse mouse = GameInput_GetMouse();
+	Mouse mouse = GetUiMouse();
 	if (RectContains(rect, mouse.pos))
 	{
 		layout_p->highlightedButtonIdx = buttonIdx;
@@ -360,7 +370,7 @@ void UITextInput(Rect rect, char* textBuf)
 		textInputText_p->cursorIdx = textLen;
 	}
 
-	Mouse mouse = GameInput_GetMouse();
+	Mouse mouse = GetUiMouse();
 	if (mouse.state == MOUSE_PRESSED)
 	{
 		int cursorIdx = FindClosestCharIdx(textBuf, textLen, rect.pos.x + 6, mouse.pos.x);

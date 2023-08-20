@@ -6,7 +6,7 @@
 
 void UIInit(Renderer* renderer_p);
 
-void UINewFrame(float deltaT);
+void UINewFrame(float deltaT, Vector2 screenDim);
 
 bool UIButton(const char* text, Rect rect);
 

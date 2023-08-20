@@ -42,9 +42,9 @@ void GameInput_NewFrame(ButtonState newButtonStates[], bool mouseIsPressed, Vect
 			gameInput.mouse.tLastPress = gameInput.time;
 		}
 	}
-	// MousePosScreen comes as (0,0) to (screnDim.x, screenDim.y). Transform into worldPos
+	// MousePosScreen comes as (0,0) to (screnDim.x, screenDim.y).
 	Vector2 prevMousePos = gameInput.mouse.pos;
-	gameInput.mouse.pos = V2(mousePosScreen.x - screenDim.x / 2, screenDim.y / 2 - mousePosScreen.y);
+	gameInput.mouse.pos = V2(mousePosScreen.x, screenDim.y - mousePosScreen.y);
 	gameInput.mouse.mouseMoved = (prevMousePos != gameInput.mouse.pos);
 
 	for (int i = 0; i < MAX_BUTTONS; i++)

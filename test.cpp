@@ -60,6 +60,10 @@ bool Test(Renderer* renderer_p, float deltaT)
 	{
 		player.pos += -SPEED * deltaT * player.facingV;
 	}
+
+	Mouse mouse = GameInput_GetMouse();
+	player.pos = mouse.pos;
+
 #if 0
 	if (GameInput_Button(BUTTON_LSHIFT) && GameInput_ButtonDown(BUTTON_RIGHT_ARROW))
 	{

@@ -139,7 +139,6 @@ static void AddToCollisions(CollisionEntities* collisions_p, Entity* entity_p)
 	collisions_p->entities_p[collisions_p->count++] = entity_p;
 }
 
-
 static void EntityEntityCollisions(CollisionEntities* collisions_p)
 {
 	for (int i = 0; i < collisions_p->count; i++)
@@ -224,6 +223,13 @@ static void EntityLevelCollisions(CollisionEntities* entities_p, float deltaT, L
 	}
 }
 
+static Vector2 MouseToWorldPos(Vector2 mousepos)
+{
+	float x = (mousepos.x / ScreenDim.x) * camera.rect.size.x + camera.rect.pos.x;
+	float y = (mousepos.y / ScreenDim.y) * camera.rect.size.y + camera.rect.pos.y;
+	return V2(x, y);
+}
+
 static bool PausedMenu()
 {
 	bool paused = true;
@@ -256,7 +262,10 @@ static void Game(float deltaT, Renderer* renderer_p)
 
 	time += deltaT;
 
-	Vector2 prevFacingV = ship.facingV;
+	Mouse mouse = GameInput_GetMouse();
+	Vector2 mousePos = MouseToWorldPos(mouse.pos);
+	PushCircle(renderer_p, mousePos, 2.0f, COLOR_GREEN);
+	
 	if (GameInput_Button(BUTTON_RIGHT_ARROW))
 	{
 		ship.facingV = RotateDeg(ship.facingV, -SHIP_ROTATION_SPEED * deltaT);
@@ -267,7 +276,9 @@ static void Game(float deltaT, Renderer* renderer_p)
 		ship.facingV = RotateDeg(ship.facingV, SHIP_ROTATION_SPEED * deltaT);
 	}
 
-	if (GameInput_Button(BUTTON_UP_ARROW))
+	ship.facingV = Normalize(mousePos - ship.pos);
+
+	if (GameInput_Button(BUTTON_W))
 	{
 		float acceleration = SHIP_ACCELERATION;
 		if (GameInput_Button(BUTTON_LSHIFT)) acceleration *= 4.0f;
@@ -284,12 +295,12 @@ static void Game(float deltaT, Renderer* renderer_p)
 		ship.vel += SHIP_ACCELERATION * deltaT * Normalize(rightFacingV);
 	}
 
-	if (!GameInput_Button(BUTTON_UP_ARROW))
+	if (!(GameInput_Button(BUTTON_W) || GameInput_Button(BUTTON_A) || GameInput_Button(BUTTON_D)))
 	{
 		ship.vel = 0.97f * ship.vel;
 	}
 
-	if (GameInput_ButtonDown(BUTTON_X))
+	if (mouse.state == MOUSE_PRESSED || mouse.state == MOUSE_DOUBLECLICK)
 	{
 		Entity* bullet_p = &bullets[(bulletIdx++) % MAX_BULLETS];
 		bullet_p->pos = ship.pos;
@@ -341,7 +352,6 @@ static void Game(float deltaT, Renderer* renderer_p)
 		PushLine(renderer_p, solid.p1, solid.p2, COLOR_GREEN);
 	}
 
-	//camera.rect.size = V2(800, 800) + (Magnitude(ship.vel) / 2000) * V2(800, 800);
 	camera.rect = NewRectCenterPos(ship.pos, camera.rect.size);
 	SetSpritesOrtographicProj(renderer_p, camera.rect);
 	SetWireframeOrtographicProj(renderer_p, camera.rect);
