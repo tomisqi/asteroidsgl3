@@ -7,6 +7,9 @@ struct Rect
 	Vector2 size;
 };
 
+
+#define RECT_ONE NewRect(VECTOR2_ZERO, VECTOR2_ONE)
+
 static inline Rect NewRect(Vector2 pos, Vector2 size)
 {
 	Rect rect = { pos, size };

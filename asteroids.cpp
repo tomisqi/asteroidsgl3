@@ -7,15 +7,17 @@
 #include "timing.h"
 #include "intersect.h"
 #include "color.h"
+#include "utils.h"
 
-#define SHIP_ROTATION_SPEED 360 * 1.5f // Degrees per second.
-#define SHIP_ACCELERATION   1000.0f
-#define SHIP_MAX_SPEED      1000.0f
-#define BULLET_SPEED        800.0f
-#define MAX_BULLETS         10
-#define BULLET_LIFETIME     5.0f
-#define MAX_ENTITIES        1<<8
-#define MAX_SOLIDS          8
+#define SHIP_ROTATION_SPEED    360 * 1.5f // Degrees per second.
+#define SHIP_ACCELERATION      1000.0f
+#define SHIP_MAX_SPEED         1000.0f
+#define BULLET_SPEED           800.0f
+#define MAX_BULLETS            10
+#define BULLET_LIFETIME        5.0f
+#define MAX_ENTITIES           1<<8
+#define MAX_SOLIDS             8
+#define INVISIBILITY_DURATION  1
 
 enum SceneE : U8
 {
@@ -44,10 +46,14 @@ struct Entity
 	EntityTypeE type;
 	bool enabled;
 	double tEnabled;
+	double tInvisibility;
 	float size;
 	Vector2 pos;
 	Vector2 facingV;
 	Vector2 vel;
+
+	TextureHandleT textureHandle;
+	Rect uv;
 };
 
 struct CollisionEntities
@@ -102,6 +108,13 @@ static void BuildLevel(Level* level_p)
 	level_p->solidsCount = 8;
 }
 
+static Vector2 GetRandomUvPos(Vector2 uvSize)
+{
+	int xCnt = 1.0f / uvSize.x;
+	int yCnt = 1.0f / uvSize.y;
+	return V2(GetRandomValue(0, xCnt-1)*uvSize.x, GetRandomValue(0, yCnt-1) * uvSize.y);
+}
+
 static void GameStart()
 {
 	memset(&camera, 0, sizeof(camera));
@@ -115,6 +128,10 @@ static void GameStart()
 	ship.size = 75.0f;
 	ship.facingV = VECTOR2_UP;
 	ship.enabled = true;
+	ship.tEnabled = time;
+	ship.tInvisibility = time + INVISIBILITY_DURATION;
+	ship.textureHandle = TEXTURE_SPACECRAFT;
+	ship.uv = RECT_ONE;
 
 	memset(&bullets, 0, sizeof(bullets));
 	for (int i = 0; i < MAX_BULLETS; i++)
@@ -122,12 +139,18 @@ static void GameStart()
 		bullets[i].type = ENTITY_BULLET;
 		bullets[i].size = 50.0f;
 		bullets[i].facingV = VECTOR2_UP;
+		bullets[i].textureHandle = TEXTURE_REDSHOT;
 	}
 
 	memset(&asteroid, 0, sizeof(asteroid));
 	asteroid.type = ENTITY_ASTEROID;
-	asteroid.size = 55.0f;
-	//asteroid.enabled = true;
+	asteroid.size = 100.0f;
+	asteroid.enabled = true;
+	asteroid.tEnabled = time;
+	asteroid.tInvisibility = time + INVISIBILITY_DURATION;
+	asteroid.textureHandle = TEXTURE_ASTEROID;
+	asteroid.pos = V2(GetRandomValue(-400, 400), GetRandomValue(-400, 400));
+	asteroid.uv = NewRect(GetRandomUvPos(V2(0.25f, 0.25f)), V2(0.25f, 0.25f));
 
 	memset(&entityCollisions, 0, sizeof(entityCollisions));
 
@@ -158,8 +181,19 @@ static void EntityEntityCollisions(CollisionEntities* collisions_p)
 				{
 				case ENTITY_BULLET | ENTITY_ASTEROID:
 				{
-					Entity* bullet_p = entityA_p->type == ENTITY_BULLET ? entityA_p : entityB_p;
+					Entity* bullet_p = entityA_p;
+					Entity* asteroid_p = entityB_p;
+					if (entityA_p->type == ENTITY_ASTEROID)
+					{
+						bullet_p = entityB_p;
+						asteroid_p = entityA_p;
+					}
+
 					bullet_p->enabled = false;
+					asteroid_p->tEnabled = time;
+					asteroid_p->tInvisibility = time + INVISIBILITY_DURATION;
+					asteroid_p->pos = V2(GetRandomValue(-400, 400), GetRandomValue(-400, 400));
+					asteroid_p->uv = NewRect(GetRandomUvPos(V2(0.25f, 0.25f)), V2(0.25f, 0.25f));
 				}
 				break;
 				case ENTITY_PLAYERSPACESHIP | ENTITY_ASTEROID:
@@ -255,6 +289,16 @@ static bool PausedMenu()
 	return paused;
 }
 
+#define PERIOD_BLINK_SPRITE 0.1f
+static bool EvalShowEntityDueToInvisibility(double tEnabled)
+{
+	bool show = true;
+	float elapsed = time - tEnabled;
+	float cyclesElapsed = elapsed / PERIOD_BLINK_SPRITE;
+	float posWithinCycle = cyclesElapsed - (int)cyclesElapsed;
+	if (posWithinCycle >= 0.5f) show = false;
+	return show;
+}
 
 static void Game(float deltaT, Renderer* renderer_p)
 {
@@ -263,20 +307,9 @@ static void Game(float deltaT, Renderer* renderer_p)
 	time += deltaT;
 
 	Mouse mouse = GameInput_GetMouse();
-	Vector2 mousePos = MouseToWorldPos(mouse.pos);
-	PushCircle(renderer_p, mousePos, 2.0f, COLOR_GREEN);
+	mouse.pos = MouseToWorldPos(mouse.pos); // Set mouse position to be world position.
 	
-	if (GameInput_Button(BUTTON_RIGHT_ARROW))
-	{
-		ship.facingV = RotateDeg(ship.facingV, -SHIP_ROTATION_SPEED * deltaT);
-	}
-
-	if (GameInput_Button(BUTTON_LEFT_ARROW))
-	{
-		ship.facingV = RotateDeg(ship.facingV, SHIP_ROTATION_SPEED * deltaT);
-	}
-
-	ship.facingV = Normalize(mousePos - ship.pos);
+	ship.facingV = Normalize(mouse.pos - ship.pos);
 
 	if (GameInput_Button(BUTTON_W))
 	{
@@ -313,11 +346,8 @@ static void Game(float deltaT, Renderer* renderer_p)
 	entityCollisions.count = 0;
 
 	ship.pos += deltaT * ship.vel;
-	AddToCollisions(&entityCollisions, &ship);
+	if (time > ship.tInvisibility) AddToCollisions(&entityCollisions, &ship);
 	PushVector(renderer_p, ship.pos -50.0f * Normalize(ship.pos), -20.0f*Normalize(ship.pos));
-	char buf[32] = { 0 };
-	sprintf(buf, "%.02f\n", Magnitude(ship.vel));
-	PushText(renderer_p, buf, V2(-380, 380), COLOR_WHITE);
 
 	for (int i = 0; i < MAX_BULLETS; i++)
 	{
@@ -325,47 +355,51 @@ static void Game(float deltaT, Renderer* renderer_p)
 		if (bullet_p->enabled)
 		{
 			bullet_p->pos += deltaT * bullet_p->vel;
-			//PushCircle(renderer_p, bullet_p->pos, bullet_p->size/2, V3(0, 1, 0));
-
 			AddToCollisions(&entityCollisions, bullet_p);
-
 			if ((time - bullet_p->tEnabled) > BULLET_LIFETIME) bullet_p->enabled = false;
 		}
 	}
 
-	if (asteroid.enabled)
+	PushXCross(renderer_p, mouse.pos, COLOR_YELLOW);
+
+	if (asteroid.enabled && time > asteroid.tInvisibility)
 	{
-		asteroid.pos = V2(500, 100);
-		PushCircle(renderer_p, asteroid.pos, asteroid.size / 2, COLOR_GREEN);
 		AddToCollisions(&entityCollisions, &asteroid);
 	}
 
 	EntityEntityCollisions(&entityCollisions);
 	EntityLevelCollisions(&entityCollisions, deltaT, &level);
 
-	//PushLine(renderer_p, V2(-1380, 0), V2(1380, 0), V3(0.5f, 0.5f, 0.5f));
-	//PushLine(renderer_p, V2(0, -1380), V2(0, 1380), V3(0.5f, 0.5f, 0.5f));
-
-	for (int i = 0; i < MAX_SOLIDS; i++)
-	{
-		LineSegment solid = level.solids[i];
-		PushLine(renderer_p, solid.p1, solid.p2, COLOR_GREEN);
-	}
 
 	camera.rect = NewRectCenterPos(ship.pos, camera.rect.size);
 	SetSpritesOrtographicProj(renderer_p, camera.rect);
 	SetWireframeOrtographicProj(renderer_p, camera.rect);
 
 GAMEUPDATE_END:
+	for (int i = 0; i < MAX_SOLIDS; i++)
+	{
+		LineSegment solid = level.solids[i];
+		PushLine(renderer_p, solid.p1, solid.p2, COLOR_GREEN);
+	}
 
 	for (int i = 0; i < MAX_BULLETS; i++)
 	{
 		Entity* bullet_p = &bullets[i];
-		if (bullet_p->enabled)  PushSprite(renderer_p, bullet_p->pos, bullet_p->size * VECTOR2_ONE, bullet_p->facingV, 1);
+		if (bullet_p->enabled) PushSprite(renderer_p, bullet_p->pos, bullet_p->size * VECTOR2_ONE, bullet_p->facingV, bullet_p->textureHandle);
 	}
-	if (ship.enabled) PushSprite(renderer_p, ship.pos, ship.size * VECTOR2_ONE, ship.facingV, 0);
+	if (ship.enabled)
+	{
+		bool showShip = true;
+		if (time < ship.tInvisibility) showShip = EvalShowEntityDueToInvisibility(ship.tEnabled);
+		if (showShip) PushSprite(renderer_p, ship.pos, ship.size * VECTOR2_ONE, ship.facingV, ship.textureHandle);
+	}
 
-	if (asteroid.enabled) PushSprite(renderer_p, asteroid.pos, asteroid.size * VECTOR2_ONE, asteroid.facingV, 4, Col(0.54f, 0.27f, 0.07f));
+	if (asteroid.enabled)
+	{
+		bool showAsteroid = true;
+		if (time < asteroid.tInvisibility) showAsteroid = EvalShowEntityDueToInvisibility(asteroid.tEnabled);
+		if (showAsteroid) PushSprite(renderer_p, asteroid.pos, asteroid.size * VECTOR2_ONE, asteroid.facingV, asteroid.textureHandle, COLOR_WHITE, asteroid.uv);
+	}
 
 	if (paused) paused = PausedMenu();
 

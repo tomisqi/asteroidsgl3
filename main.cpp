@@ -4,7 +4,7 @@
 // [x] Mouse support
 // [x] UI
 // [ ] Audio
-// [ ] Collisions
+// [x] Collisions
 // [ ] Animations
 // [ ] Particle system
 // [x] Camera
@@ -108,16 +108,13 @@ int main(void)
 		return -1;
 	}
 
-
 	srand(time(NULL)); // Initialize random seed
 
-	Texture textures[6] = { 0 };
-	textures[0] = LoadTexture("../assets/textures/Spacecraft.png");	
-	textures[1] = LoadTexture("../assets/textures/RedShot.png");
-	textures[2] = LoadTexture("../assets/textures/ELI.png");
-	textures[3] = LoadTexture("../assets/textures/InternalTileDev.png");
-	textures[4] = LoadTexture("../assets/textures/Asteroid.png");
-	textures[5] = LoadTexture("../assets/textures/RectWhite.png");
+	Texture textures[TEXTURES_COUNT] = { 0 };
+	textures[TEXTURE_SPACECRAFT] = LoadTexture("../assets/textures/Spacecraft.png");
+	textures[TEXTURE_REDSHOT] = LoadTexture("../assets/textures/RedShot.png");
+	textures[TEXTURE_ELI] = LoadTexture("../assets/textures/ELI.png");
+	textures[TEXTURE_ASTEROID] = LoadTexture("../assets/textures/Asteroids.png");
 
 	OpenGL openGl;
 	OpenGLInit(&openGl);
@@ -149,33 +146,6 @@ int main(void)
 	  bool quit = GameUpdateAndRender(GetDeltaT(), &renderer);
 	  //bool quit = Test(&renderer, GetDeltaT());
 	  // @temp --->
-#if 0
-	  static Vector2 facingV = VECTOR2_UP;
-	  facingV = RotateDeg(facingV, -90 * GetDeltaT());
-	  for (int i = 0; i < 16; i++)
-	  {
-		  Rect rect1 = NewRect(V2(300*i, 300*i), V2(100, 100));
-		  PushRect(&renderer, rect1, V3(0.0f, 1.0f, 0.0f));
-		  PushRect(&renderer, rect1, V3(1.0f, 1.0f, 0.0f), facingV);
-		  Rect rect2 = NewRect(V2(300*i, -400*i), V2(100, 100));
-		  PushRect(&renderer, rect2, V3(1.0f, 1.0f, 0.0f));
-		  PushRect(&renderer, rect2, V3(0.0f, 1.0f, 0.0f), facingV);
-		  Rect rect3 = NewRect(V2(-400 * i, -400 * i), V2(100, 100));
-		  PushRect(&renderer, rect3, V3(0.0f, 1.0f, 0.0f));
-		  PushRect(&renderer, rect3, V3(1.0f, 1.0f, 0.0f), facingV);
-		  Rect rect4 = NewRect(V2(-400 * i, 300 * i), V2(100 , 100));
-		  PushRect(&renderer, rect4, V3(1.0f, 1.0f, 0.0f));
-		  PushRect(&renderer, rect4, V3(0.0f, 1.0f, 0.0f), facingV);
-	  }
-	  //PushCircle(renderer_p, VECTOR2_ZERO, 50.0f, V3(1, 1, 1));
-#endif
-
-	  //PushVector(&renderer, VECTOR2_ZERO, v3);
-	  // 
-	  // <-- @temp
-
-	  //U64 i = __rdtsc();
-	  //printf_s("%I64d ticks\n", i);
 
 	  OpenGLEndFrame(&openGl, &renderer, textures, ScreenDim);
 	  RendererEndFrame(&renderer);

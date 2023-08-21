@@ -283,7 +283,7 @@ void UICharCallback(unsigned int codepoint)
 void UITextInput(Rect rect, char* textBuf)
 {
 	// Text and textbox graphics
-	PushText(ui.renderer_p, textBuf, V2(rect.pos.x + 6, -(rect.pos.y + 6)), COLOR_WHITE);
+	PushText(ui.renderer_p, textBuf, V2(rect.pos.x + 6, -(rect.pos.y + 6)), COLOR_WHITE, rect.pos.x + rect.size.x - 10);
 	PushUiRect(ui.renderer_p, ContractRect(rect, 5), Col(0.3f, 0.3f, 0.3f));
 
 	int thisone = ui.textInputsCount++;

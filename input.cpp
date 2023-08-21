@@ -42,7 +42,8 @@ void GameInput_NewFrame(ButtonState newButtonStates[], bool mouseIsPressed, Vect
 			gameInput.mouse.tLastPress = gameInput.time;
 		}
 	}
-	// MousePosScreen comes as (0,0) to (screnDim.x, screenDim.y).
+
+	// MousePosScreen.x is Ok, but we flip MousePosScreen.y.
 	Vector2 prevMousePos = gameInput.mouse.pos;
 	gameInput.mouse.pos = V2(mousePosScreen.x, screenDim.y - mousePosScreen.y);
 	gameInput.mouse.mouseMoved = (prevMousePos != gameInput.mouse.pos);

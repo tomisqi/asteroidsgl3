@@ -98,7 +98,7 @@ void SetWireframeOrtographicProj(Renderer* renderer_p, Rect rect)
 	SetOrtographicProj(rendGrp_p, rect);
 }
 
-void PushSprite(Renderer* renderer_p, Vector2 pos, Vector2 size, Vector2 facingV, TextureHandleT textureHandle, Color color)
+void PushSprite(Renderer* renderer_p, Vector2 pos, Vector2 size, Vector2 facingV, TextureHandleT textureHandle, Color color, Rect uvRect)
 {
 	RenderGroup* rendGrp_p = FindRenderGroup(renderer_p, RENDER_GROUP_SPRITES_DEFAULT);
 	assert(rendGrp_p);
@@ -116,19 +116,19 @@ void PushSprite(Renderer* renderer_p, Vector2 pos, Vector2 size, Vector2 facingV
 	TexturedVertex* vert_p = &renderCmds_p->vertexArray[renderCmds_p->vertexCount];
 	vert_p[0].pos = V3(MaxXMaxY);
 	vert_p[0].color = color;
-	vert_p[0].uv = V2(1.0f, 1.0f);
+	vert_p[0].uv = RectMaxXMaxY(uvRect);
 	vert_p[0].textureHandle = textureHandle;
 	vert_p[1].pos = V3(MaxXMinY);
 	vert_p[1].color = color;
-	vert_p[1].uv = V2(1.0f, 0.0f);
+	vert_p[1].uv = RectMaxXMinY(uvRect);
 	vert_p[1].textureHandle = textureHandle;
 	vert_p[2].pos = V3(MinXMinY);
 	vert_p[2].color = color;
-	vert_p[2].uv = V2(0.0f, 0.0f);
+	vert_p[2].uv = RectMinXMinY(uvRect);
 	vert_p[2].textureHandle = textureHandle;
 	vert_p[3].pos = V3(MinXMaxY);
 	vert_p[3].color = color;
-	vert_p[3].uv = V2(0.0f, 1.0f);
+	vert_p[3].uv = RectMinXMaxY(uvRect);
 	vert_p[3].textureHandle = textureHandle;
 
 	U16 baseIndex = renderCmds_p->vertexCount;
@@ -204,7 +204,7 @@ float GetCharPosX(stbtt_bakedchar* bakedCharData_p, float startPosX, const char*
 	return startPosX;
 }
 
-void PushText(Renderer* renderer_p, const char* text, Vector2 pos, Color color)
+void PushText(Renderer* renderer_p, const char* text, Vector2 pos, Color color, float maxX)
 {
 	RenderGroup* rendGrp_p = FindRenderGroup(renderer_p, RENDER_GROUP_TEXT_DEFAULT);
 	assert(rendGrp_p);
@@ -212,7 +212,7 @@ void PushText(Renderer* renderer_p, const char* text, Vector2 pos, Color color)
 	stbtt_bakedchar* bakedCharData_p = renderer_p->textRendering.charUvData;
 
 	int idx = 0;
-	while (*text) 
+	while (*text && (pos.x < maxX))
 	{
 		if (*text >= 32 && *text < 128) 
 		{
@@ -332,7 +332,7 @@ void PushLine(Renderer* renderer_p, Vector2 startPos, Vector2 endPos, Color colo
 	renderCmds_p->indexCount += 6;
 }
 
-#define LEG_LENGTH 10
+#define ARROW_LEG_LENGTH 10
 void PushVector(Renderer* renderer_p, Vector2 pos, Vector2 v, Color color)
 {
 	Vector2 normV = Normalize(v);
@@ -341,8 +341,23 @@ void PushVector(Renderer* renderer_p, Vector2 pos, Vector2 v, Color color)
 
 	Vector2 tip = pos + v;
 	PushLine(renderer_p, pos, tip, color);
-	PushLine(renderer_p, tip, tip + LEG_LENGTH * leg1V, color);
-	PushLine(renderer_p, tip, tip + LEG_LENGTH * leg2V, color);
+	PushLine(renderer_p, tip, tip + ARROW_LEG_LENGTH * leg1V, color);
+	PushLine(renderer_p, tip, tip + ARROW_LEG_LENGTH * leg2V, color);
+}
+
+#define XCROSS_SIZE 10
+void PushXCross(Renderer* renderer_p, Vector2 pos, Color color)
+{
+	Vector2 p1; 
+	Vector2 p2;
+
+	p1 = pos - XCROSS_SIZE * VECTOR2_ONE;
+	p2= pos + XCROSS_SIZE * VECTOR2_ONE;
+	PushLine(renderer_p, p1, p2, color);
+
+	p1 = pos + V2(-XCROSS_SIZE, XCROSS_SIZE);
+	p2 = pos + V2(XCROSS_SIZE, -XCROSS_SIZE);
+	PushLine(renderer_p, p1, p2, color);
 }
 
 void PushCircle(Renderer* renderer_p, Vector2 centerPos, float radius, Color color, int edges)

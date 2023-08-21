@@ -21,7 +21,7 @@ enum MouseStateE : U8
 struct Mouse
 {
 	MouseStateE state;
-	Vector2 pos;
+	Vector2 pos; // pos = (0,0) to (ScreenDim.x, ScreenDim.y)
 	double tLastPress;
 	bool mouseMoved;
 };
