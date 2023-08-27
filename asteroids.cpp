@@ -12,11 +12,11 @@
 #define SHIP_ROTATION_SPEED    360 * 1.5f // Degrees per second.
 #define SHIP_ACCELERATION      1000.0f
 #define SHIP_MAX_SPEED         1000.0f
-#define BULLET_SPEED           800.0f
-#define MAX_BULLETS            10
-#define BULLET_LIFETIME        5.0f
+#define BULLET_SPEED           1800.0f
+#define MAX_BULLETS            100
+#define BULLET_LIFETIME        10.0f
 #define MAX_ENTITIES           1<<8
-#define MAX_SOLIDS             8
+#define MAX_SOLIDS             15
 #define INVISIBILITY_DURATION  1
 
 enum SceneE : U8
@@ -32,6 +32,7 @@ enum EntityTypeE : U32
 	ENTITY_PLAYERSPACESHIP = 1 << 1,
 	ENTITY_BULLET          = 1 << 2,
 	ENTITY_ASTEROID        = 1 << 3,
+	ENTITY_ENEMYBULLET     = 1 << 4,
 };
 
 enum MenuScreenE: U8
@@ -82,9 +83,11 @@ static Entity asteroid;
 static CollisionEntities entityCollisions;
 static int bulletIdx;
 static Entity bullets[MAX_BULLETS];
+static Entity enemyBullets[MAX_BULLETS];
 static bool paused;
 static MenuScreenE mainMenuScreen;
 static double time;
+static int score;
 
 void GameInit()
 {
@@ -102,10 +105,20 @@ static void BuildLevel(Level* level_p)
 
 	level_p->solids[4] = { V2(400, 400), V2(400, 1100) };
 	level_p->solids[5] = { V2(1100, 400), V2(1100, 1100) };
-	level_p->solids[6] = { V2(400, 1100), V2(1100, 1100) };
+	level_p->solids[6] = { V2(400, 1100), V2(900, 1100) };
 	level_p->solids[7] = { V2(400, 400), V2(1100, 400) };
 
-	level_p->solidsCount = 8;
+	level_p->solids[8] = { V2(-3000, -3000), V2(3000, -3000) };
+	level_p->solids[9] = { V2(3000, -3000), V2(3000, 3000) };
+	level_p->solids[10]= { V2(3000, 3000), V2(-3000, 3000) };
+	level_p->solids[11]= { V2(-3000, 3000), V2(-3000, -3000) };
+
+	level_p->solids[12] = { V2(-2000, -2000), V2(-1500, -2000) };
+	level_p->solids[13] = { V2(-1500, -2000), V2(-1750, -1500) };
+	level_p->solids[14] = { V2(-1750, -1500), V2(-2000, -2000) };
+
+
+	level_p->solidsCount = 15;
 }
 
 static Vector2 GetRandomUvPos(Vector2 uvSize)
@@ -118,7 +131,7 @@ static Vector2 GetRandomUvPos(Vector2 uvSize)
 static void GameStart()
 {
 	memset(&camera, 0, sizeof(camera));
-	camera.rect = NewRectCenterPos(VECTOR2_ZERO, 2*ScreenDim);
+	camera.rect = NewRectCenterPos(VECTOR2_ZERO, 3.0f*ScreenDim);
 
 	memset(&level, 0, sizeof(level));
 	BuildLevel(&level);
@@ -142,6 +155,15 @@ static void GameStart()
 		bullets[i].textureHandle = TEXTURE_REDSHOT;
 	}
 
+	memset(&enemyBullets, 0, sizeof(enemyBullets));
+	for (int i = 0; i < MAX_BULLETS; i++)
+	{
+		enemyBullets[i].type = ENTITY_ENEMYBULLET;
+		enemyBullets[i].size = 50.0f;
+		enemyBullets[i].facingV = VECTOR2_UP;
+		enemyBullets[i].textureHandle = TEXTURE_REDSHOT;
+	}
+
 	memset(&asteroid, 0, sizeof(asteroid));
 	asteroid.type = ENTITY_ASTEROID;
 	asteroid.size = 100.0f;
@@ -153,6 +175,8 @@ static void GameStart()
 	asteroid.uv = NewRect(GetRandomUvPos(V2(0.25f, 0.25f)), V2(0.25f, 0.25f));
 
 	memset(&entityCollisions, 0, sizeof(entityCollisions));
+
+	score = 0;
 
 	paused = false;
 }
@@ -192,8 +216,10 @@ static void EntityEntityCollisions(CollisionEntities* collisions_p)
 					bullet_p->enabled = false;
 					asteroid_p->tEnabled = time;
 					asteroid_p->tInvisibility = time + INVISIBILITY_DURATION;
-					asteroid_p->pos = V2(GetRandomValue(-400, 400), GetRandomValue(-400, 400));
+					asteroid_p->pos = V2(GetRandomValue(-3000, 3000), GetRandomValue(-3000, 3000));
 					asteroid_p->uv = NewRect(GetRandomUvPos(V2(0.25f, 0.25f)), V2(0.25f, 0.25f));
+
+					score++;
 				}
 				break;
 				case ENTITY_PLAYERSPACESHIP | ENTITY_ASTEROID:
@@ -202,6 +228,19 @@ static void EntityEntityCollisions(CollisionEntities* collisions_p)
 					ship_p->pos = VECTOR2_ZERO;
 					ship_p->vel = VECTOR2_ZERO;
 					ship_p->facingV = VECTOR2_UP;
+					ship_p->tEnabled = time;
+					ship_p->tInvisibility = time + INVISIBILITY_DURATION;
+				}
+				case ENTITY_PLAYERSPACESHIP | ENTITY_ENEMYBULLET:
+				{
+					Entity* ship_p = entityA_p->type == ENTITY_PLAYERSPACESHIP ? entityA_p : entityB_p;
+					ship_p->pos = VECTOR2_ZERO;
+					ship_p->vel = VECTOR2_ZERO;
+					ship_p->facingV = VECTOR2_UP;
+					ship_p->tEnabled = time;
+					ship_p->tInvisibility = time + INVISIBILITY_DURATION;
+
+					score--;
 				}
 				break;
 				default:
@@ -233,6 +272,15 @@ static void EntityLevelCollisions(CollisionEntities* entities_p, float deltaT, L
 				switch (entity_p->type)
 				{
 				case ENTITY_BULLET:
+				{
+					Entity* bullet_p = entity_p;
+					Vector2 normal = GetNormal(solidLine, bullet_p->pos);
+					float angle = AngleDegRel(-bullet_p->vel, normal);
+					bullet_p->vel = RotateDeg(-bullet_p->vel, 2 * angle);
+					bullet_p->facingV = Normalize(bullet_p->vel);
+					break;
+				}
+				case ENTITY_ENEMYBULLET:
 				{
 					Entity* bullet_p = entity_p;
 					Vector2 normal = GetNormal(solidLine, bullet_p->pos);
@@ -347,7 +395,7 @@ static void Game(float deltaT, Renderer* renderer_p)
 
 	ship.pos += deltaT * ship.vel;
 	if (time > ship.tInvisibility) AddToCollisions(&entityCollisions, &ship);
-	PushVector(renderer_p, ship.pos -50.0f * Normalize(ship.pos), -20.0f*Normalize(ship.pos));
+	PushVector(renderer_p, ship.pos + 50.0f * Normalize(asteroid.pos - ship.pos), 20.0f*Normalize(asteroid.pos - ship.pos));
 
 	for (int i = 0; i < MAX_BULLETS; i++)
 	{
@@ -360,22 +408,42 @@ static void Game(float deltaT, Renderer* renderer_p)
 		}
 	}
 
-	PushXCross(renderer_p, mouse.pos, COLOR_YELLOW);
-
 	if (asteroid.enabled && time > asteroid.tInvisibility)
 	{
+		if (mouse.state == MOUSE_PRESSED || mouse.state == MOUSE_DOUBLECLICK)
+		{		
+			Entity* bullet_p = &enemyBullets[(bulletIdx++) % MAX_BULLETS];
+			bullet_p->pos = asteroid.pos;
+			bullet_p->facingV = Normalize(ship.pos - asteroid.pos);
+			bullet_p->vel = BULLET_SPEED * bullet_p->facingV;
+			bullet_p->enabled = true;
+			bullet_p->tEnabled = time;
+		}
 		AddToCollisions(&entityCollisions, &asteroid);
+	}
+
+	for (int i = 0; i < MAX_BULLETS; i++)
+	{
+		Entity* bullet_p = &enemyBullets[i];
+		if (bullet_p->enabled)
+		{
+			bullet_p->pos += deltaT * bullet_p->vel;
+			AddToCollisions(&entityCollisions, bullet_p);
+			if ((time - bullet_p->tEnabled) > BULLET_LIFETIME) bullet_p->enabled = false;
+		}
 	}
 
 	EntityEntityCollisions(&entityCollisions);
 	EntityLevelCollisions(&entityCollisions, deltaT, &level);
 
-
 	camera.rect = NewRectCenterPos(ship.pos, camera.rect.size);
 	SetSpritesOrtographicProj(renderer_p, camera.rect);
 	SetWireframeOrtographicProj(renderer_p, camera.rect);
 
+	PushXCross(renderer_p, mouse.pos, COLOR_YELLOW);
+
 GAMEUPDATE_END:
+
 	for (int i = 0; i < MAX_SOLIDS; i++)
 	{
 		LineSegment solid = level.solids[i];
@@ -386,6 +454,8 @@ GAMEUPDATE_END:
 	{
 		Entity* bullet_p = &bullets[i];
 		if (bullet_p->enabled) PushSprite(renderer_p, bullet_p->pos, bullet_p->size * VECTOR2_ONE, bullet_p->facingV, bullet_p->textureHandle);
+		bullet_p = &enemyBullets[i];
+		if (bullet_p->enabled) PushSprite(renderer_p, bullet_p->pos, bullet_p->size * VECTOR2_ONE, bullet_p->facingV, bullet_p->textureHandle, COLOR_RED);
 	}
 	if (ship.enabled)
 	{
@@ -400,6 +470,9 @@ GAMEUPDATE_END:
 		if (time < asteroid.tInvisibility) showAsteroid = EvalShowEntityDueToInvisibility(asteroid.tEnabled);
 		if (showAsteroid) PushSprite(renderer_p, asteroid.pos, asteroid.size * VECTOR2_ONE, asteroid.facingV, asteroid.textureHandle, COLOR_WHITE, asteroid.uv);
 	}
+
+	char scoreBuf[32] = { 0 }; sprintf(scoreBuf, "Score: %d", score);
+	PushText(renderer_p, scoreBuf, V2(-380, 380), COLOR_WHITE);
 
 	if (paused) paused = PausedMenu();
 
