@@ -81,7 +81,7 @@ static double r2()
 	return (double)rand() / (double)RAND_MAX;
 }
 
-void charCallback(GLFWwindow* window, unsigned int codepoint)
+void CharCallback(GLFWwindow* window, unsigned int codepoint)
 {
 	UICharCallback(codepoint);
 }
@@ -126,7 +126,7 @@ int main(void)
 	BindButtons();
 	ButtonState buttonStates[MAX_BUTTONS];
 	glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
-	glfwSetCharCallback(window, charCallback);
+	glfwSetCharCallback(window, CharCallback);
 
 	UIInit(&renderer);
 	GameInit();

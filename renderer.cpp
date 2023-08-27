@@ -306,8 +306,8 @@ void PushLine(Renderer* renderer_p, Vector2 startPos, Vector2 endPos, Color colo
 	Vector2 v = Normalize(endPos - startPos);
 	Vector2 MaxXMaxY = endPos   + thickness * RotateDeg(v, +90);
 	Vector2 MaxXMinY = endPos   + thickness * RotateDeg(v, -90);
-	Vector2 MinXMinY = startPos + thickness * RotateDeg(-1 * v, +90);
-	Vector2 MinXMaxY = startPos + thickness * RotateDeg(-1 * v, -90);
+	Vector2 MinXMinY = startPos + thickness * RotateDeg(-v, +90);
+	Vector2 MinXMaxY = startPos + thickness * RotateDeg(-v, -90);
 
 	ColoredVertex* vert_p = &renderCmds_p->onlyColoredVertexArray[renderCmds_p->vertexCount];
 	vert_p[0].pos = V3(MaxXMaxY);
