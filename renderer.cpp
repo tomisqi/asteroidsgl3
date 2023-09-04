@@ -15,7 +15,7 @@
 #define MAX_SPRITE_QUADS    (1 << 8)
 #define MAX_TEXT_QUADS      (1 << 8)
 #define MAX_UI_QUADS        (1 << 8)
-#define MAX_WIREFRAME_QUADS (1 << 10)
+#define MAX_WIREFRAME_QUADS (1 << 12)
 
 static U8 ttfBuffer[1 << 20];
 

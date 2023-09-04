@@ -9,6 +9,7 @@
 #define COLOR_MAGENTA	Col(1.0f, 0.0f, 1.0f)
 #define COLOR_BLACK		Col(0.0f, 0.0f, 0.0f)
 #define COLOR_CYAN      Col(0.0f, 1.0f, 1.0f)
+#define COLOR_GRAY      Col(0.5f, 0.5f, 0.5f)     
 
 #define COL32(R,G,B)	(((R & 0xff) << 0) | ((G & 0xff) << 8) | ((B & 0xff) << 16) |  (0xff) << 24)
 #define COL32A(R,G,B,A) (((R & 0xff) << 0) | ((G & 0xff) << 8) | ((B & 0xff) << 16) | (A & 0xff) << 24)

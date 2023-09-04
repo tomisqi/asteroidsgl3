@@ -71,3 +71,8 @@ Mouse GameInput_GetMouse()
 {
 	return gameInput.mouse;
 }
+
+float GetMouseHoldTime(Mouse mouse)
+{
+	return ELAPSED(gameInput.time, mouse.tLastPress); // Use gameInput.time here since tLastPressed is based gameInput.time (another "time" might have another starting point)
+}

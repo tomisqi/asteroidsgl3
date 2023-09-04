@@ -30,7 +30,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-Vector2 ScreenDim = V2(800, 800);
+Vector2 ScreenDim = V2(1000, 1000);
 
 static void GlfwErrorCallback(int error, const char* description)
 {
@@ -115,6 +115,7 @@ int main(void)
 	textures[TEXTURE_REDSHOT] = LoadTexture("../assets/textures/RedShot.png");
 	textures[TEXTURE_ELI] = LoadTexture("../assets/textures/ELI.png");
 	textures[TEXTURE_ASTEROID] = LoadTexture("../assets/textures/Asteroids.png");
+	textures[TEXTURE_CHARGEDBULLET] = LoadTexture("../assets/textures/BlueShot.png");
 
 	OpenGL openGl;
 	OpenGLInit(&openGl);
@@ -145,7 +146,6 @@ int main(void)
 
 	  bool quit = GameUpdateAndRender(GetDeltaT(), &renderer);
 	  //bool quit = Test(&renderer, GetDeltaT());
-	  // @temp --->
 
 	  OpenGLEndFrame(&openGl, &renderer, textures, ScreenDim);
 	  RendererEndFrame(&renderer);

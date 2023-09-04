@@ -72,3 +72,4 @@ void GameInput_NewFrame(ButtonState newButtonStates[], bool mouseIsPressed, Vect
 void GameInput_BindButton(ButtonVal buttonVal, int platformVal);
 int GameInput_GetBinding(int buttonIdx);
 Mouse GameInput_GetMouse();
+float GetMouseHoldTime(Mouse mouse);

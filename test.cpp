@@ -4,6 +4,7 @@
 #include "vector.h"
 #include "intersect.h"
 #include "ui.h"
+#include "utils.h"
 
 #define ROTATION_SPEED 360 // Degrees per second.
 #define SPEED          500.0f
@@ -12,14 +13,17 @@ struct Player
 {
 	Vector2 pos;
 	Vector2 facingV;
-	float radius;
+	Vector2 vel;
+	float size;
 };
 
 extern Vector2 ScreenDim;
 
 //static LineSegment line1 = { V2(-100, 0), V2(-300, 0) };
 static LineSegment line2 = { V2( 0, 100), V2( 0, -100) };
-static Player player = {V2(-100, 0), VECTOR2_UP, 10};
+static Player player = {V2(-100, 0), VECTOR2_UP, VECTOR2_ZERO, 50};
+static Player player2 = { VECTOR2_ZERO, VECTOR2_UP, VECTOR2_ZERO, 5 };
+static Vector2 collisionP = VECTOR2_ZERO;
 
 static void MoveLine(LineSegment* line_p, Vector2 v, float deltaT)
 {
@@ -48,120 +52,91 @@ static void MakeHorizontal(LineSegment* line_p)
 	line_p->p2.y = centerP.y;
 }
 
+static void CheckCollision(Player* player1_p, Player* player2_p)
+{
+	float distCollision = player1_p->size/2 + player2_p->size/2;
+	float distCollisionSq = distCollision * distCollision;
+	float distSq = MagnitudeSq(player1_p->pos - player2_p->pos);
+	if (distSq <= distCollisionSq)
+	{
+		Vector2 v1 = player1_p->vel;
+		Vector2 v2 = player2_p->vel;
+		float m1 = player1_p->size;
+		float m2 = player2_p->size;
+		Vector2 x1 = player1_p->pos;
+		Vector2 x2 = player2_p->pos;
+
+		player1_p->vel = v1 - (2*m2/(m1+m2)) * (Dot(v1 - v2, x1 - x2) / MagnitudeSq(x1-x2)) * (x1 - x2);
+		player2_p->vel = v2 - (2*m1/(m1+m2)) * (Dot(v2 - v1, x2 - x1) / MagnitudeSq(x2-x1)) * (x2 - x1);
+		//player1_p->vel = (player2_p->size / player1_p->size) * player2_p->vel;
+		//player2_p->vel = (player1_p->size / player2_p->size) * v1;
+		collisionP = player1_p->pos + (player1_p->size / 2) * Normalize(player2_p->pos - player1_p->pos);
+	}
+}
+
+static Vector2 MouseToWorldPos(Vector2 mousepos)
+{
+	float x = (mousepos.x - ScreenDim.x/2);
+	float y = (mousepos.y - ScreenDim.y/2);
+	return V2(x, y);
+}
+
+Vector2 holePos = V2(GetRandomValue(-350, 350), GetRandomValue(-350, 350));
 bool Test(Renderer* renderer_p, float deltaT)
 {
-	// Line1
-	Vector2 p;
-	if (GameInput_Button(BUTTON_UP_ARROW) && !LineCircleIntersect(line2, player.pos, player.radius, p))
-	{
-		player.pos += SPEED * deltaT * player.facingV;
-	}
-	if (GameInput_Button(BUTTON_DOWN_ARROW))
-	{
-		player.pos += -SPEED * deltaT * player.facingV;
-	}
-
 	Mouse mouse = GameInput_GetMouse();
-	player.pos = mouse.pos;
-
-#if 0
-	if (GameInput_Button(BUTTON_LSHIFT) && GameInput_ButtonDown(BUTTON_RIGHT_ARROW))
+	mouse.pos = MouseToWorldPos(mouse.pos);
+	
+	if (GameInput_Button(BUTTON_ENTER))
 	{
-		float angle = AngleDeg(VECTOR2_RIGHT, line1.p1 - line1.p2); 
-		if (line1.p1.y < line1.p2.y) angle = 360-angle;
-		angle--; if (angle < 0) angle = 359;
-		float angle45 = 45 * ((int)angle/ 45); // Get the next 45 deg angle.
-		MakeHorizontal(&line1);
-		RotateLine(&line1, angle45);
-
-	}
-#endif
-	if (GameInput_Button(BUTTON_RIGHT_ARROW) && !GameInput_Button(BUTTON_LSHIFT))
-	{
-		player.facingV = RotateDeg(player.facingV, -ROTATION_SPEED * deltaT);
-	}
-#if 0
-	if (GameInput_Button(BUTTON_LSHIFT) && GameInput_ButtonDown(BUTTON_LEFT_ARROW))
-	{
-		float angle = AngleDeg(VECTOR2_RIGHT, line1.p1 - line1.p2);
-		if (line1.p1.y < line1.p2.y) angle = 360 - angle;
-		angle++;
-		float angle45 = 45 * ((int)angle / 45) + 45; // Get the next 45 deg angle.
-		MakeHorizontal(&line1);
-		RotateLine(&line1, angle45);
-
-	}
-#endif
-	if (GameInput_Button(BUTTON_LEFT_ARROW) && !GameInput_Button(BUTTON_LSHIFT))
-	{
-		player.facingV = RotateDeg(player.facingV, ROTATION_SPEED * deltaT);
+		player2.pos = VECTOR2_ZERO;
+		player2.vel = VECTOR2_ZERO;
 	}
 
-	// Line2
-	if (GameInput_Button(BUTTON_W))
+	static Vector2 aimP = VECTOR2_ZERO;
+	if (mouse.state == MOUSE_PRESSED_HOLD && (aimP == VECTOR2_ZERO))
 	{
-		Vector2 facingV = Normalize(line2.p1 - line2.p2);
-		MoveLine(&line2, facingV, deltaT);
+		aimP = mouse.pos;		
 	}
-	if (GameInput_Button(BUTTON_S))
+	if (mouse.state == MOUSE_RELEASED && aimP != VECTOR2_ZERO)
 	{
-		Vector2 facingV = Normalize(line2.p1 - line2.p2);
-		MoveLine(&line2, -facingV, deltaT);
-	}
-	if (GameInput_Button(BUTTON_D))
-	{
-		RotateLine(&line2, -ROTATION_SPEED * deltaT);
-	}
-	if (GameInput_Button(BUTTON_A))
-	{
-		RotateLine(&line2, ROTATION_SPEED * deltaT);
+		player.pos = aimP;
+		player.vel = 200.0f * Normalize(mouse.pos - aimP);
+		player.vel = 2 * (mouse.pos - aimP);
+
+		aimP = VECTOR2_ZERO;
 	}
 
-	// Player
-	PushCircle(renderer_p, player.pos, player.radius, COLOR_GREEN, 64);
-	PushLine(renderer_p, player.pos, player.pos + player.radius*player.facingV, COLOR_CYAN);
+	if (aimP != VECTOR2_ZERO)
+	{
+		PushVector(renderer_p, aimP, mouse.pos - aimP);
+	}
 
-	PushLine(renderer_p, line2.p1, line2.p2, COLOR_WHITE);
-	PushText(renderer_p, "p1", V2(line2.p1.x, -line2.p1.y), COLOR_CYAN);
 
-	PushCircle(renderer_p, VECTOR2_ZERO, 2.0f, COLOR_WHITE); // origin
+	player.pos += deltaT * player.vel;
+	player2.pos += deltaT * player2.vel;
 
-	PushVector(renderer_p, GetCenterP(line2), 50.0f*GetNormal(line2, player.pos), COLOR_MAGENTA);
+	// Players
+	PushCircle(renderer_p, player.pos, player.size/2, COLOR_GREEN, 64);
+	PushCircle(renderer_p, player2.pos, player2.size / 2, COLOR_YELLOW, 64);
 
-	PushVector(renderer_p, VECTOR2_ZERO, 50.0f * VECTOR2_UP, COLOR_MAGENTA);
+	// Hole
+	PushCircle(renderer_p, holePos, player2.size / 2, COLOR_GRAY, 8);
 
-	//printf("%.02f\n", AngleDegRel(VECTOR2_UP, line2.p1 - line2.p2));
+	// CollisionP
+	PushXCross(renderer_p, collisionP, COLOR_CYAN);
 
-	//
-	float angle = 0;
-	//angle += (6 * deltaT); if (angle >= 360) angle = 0;
+	CheckCollision(&player, &player2);
+
 	static char buf[64] = { 0 };
-
 	UITextInput(NewRect(V2(-380,350), V2(200, 25)), buf);
-	angle = atoi(buf);
-
 	static char buf2[64] = { 0 };
 	UITextInput(NewRect(V2(-380, 300), V2(200, 25)), buf2);
-#if 0
-	PushVector(renderer_p, V2(-200, 200), 100.0f * VECTOR2_RIGHT, COLOR_MAGENTA);
-	PushVector(renderer_p, V2(-200, 200), 100.0f * RotateDeg(VECTOR2_RIGHT, angle));
-
-	PushVector(renderer_p, V2(200, 200), 100.0f * VECTOR2_LEFT, COLOR_MAGENTA);
-	PushVector(renderer_p, V2(200, 200), 100.0f * RotateDeg(VECTOR2_LEFT, angle));
-
-	PushVector(renderer_p, V2(-200, -200), 100.0f * VECTOR2_UP, COLOR_MAGENTA);
-	PushVector(renderer_p, V2(-200, -200), 100.0f * RotateDeg(VECTOR2_UP, angle));
-
-	PushVector(renderer_p, V2(200, -200), 100.0f * VECTOR2_DOWN, COLOR_MAGENTA);
-	PushVector(renderer_p, V2(200, -200), 100.0f * RotateDeg(VECTOR2_DOWN, angle));
-#endif
 
 	SetWireframeOrtographicProj(renderer_p, NewRectCenterPos(VECTOR2_ZERO, ScreenDim));
 
 	bool quit = false;
-	if (GameInput_Button(BUTTON_ESC))
-	{
-		quit = true;
-	}
+	if (GameInput_Button(BUTTON_ESC)) quit = true;
+
 	return quit;
 }
