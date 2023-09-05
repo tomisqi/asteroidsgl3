@@ -45,3 +45,9 @@ static inline int GetRandomSign()
 	int randVal = GetRandomValue(0, 1);
 	return signs[randVal];
 }
+
+static inline float Lerp(float start, float end, float t)
+{
+	t = Clampf(t, 0.0f, 1.0f);
+	return start * (1 - t) + end * t;
+}

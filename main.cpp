@@ -116,6 +116,7 @@ int main(void)
 	textures[TEXTURE_ELI] = LoadTexture("../assets/textures/ELI.png");
 	textures[TEXTURE_ASTEROID] = LoadTexture("../assets/textures/Asteroids.png");
 	textures[TEXTURE_CHARGEDBULLET] = LoadTexture("../assets/textures/BlueShot.png");
+	textures[TEXTURE_SHIPEXHAUST] = LoadTexture("../assets/textures/Exhaust.png");
 
 	OpenGL openGl;
 	OpenGLInit(&openGl);

@@ -32,21 +32,21 @@ void RendererInit(Renderer* renderer_p)
 	//
 	// Render groups
 	//
-	int spriteShaderProgram = LoadAndCompileShaders("../shaders/vertex_shader.vs", "../shaders/sprites_shader.fs"); 
+	int wireframeShaderProgram = LoadAndCompileShaders("../shaders/wireframe_shader.vs", "../shaders/wireframe_shader.fs");
+	assert(wireframeShaderProgram >= 0);
+	renderer_p->renderGroups[0] = CreateRendererGroup(RENDER_GROUP_WIREFRAME, wireframeShaderProgram, MAX_WIREFRAME_QUADS, true);
+
+	int spriteShaderProgram = LoadAndCompileShaders("../shaders/vertex_shader.vs", "../shaders/sprites_shader.fs");
 	assert(spriteShaderProgram >= 0);
-	renderer_p->renderGroups[0] = CreateRendererGroup(RENDER_GROUP_SPRITES_DEFAULT, spriteShaderProgram, MAX_SPRITE_QUADS);
+	renderer_p->renderGroups[1] = CreateRendererGroup(RENDER_GROUP_SPRITES_DEFAULT, spriteShaderProgram, MAX_SPRITE_QUADS);
 
 	int uiShaderProgram = LoadAndCompileShaders("../shaders/wireframe_shader.vs", "../shaders/wireframe_shader.fs");
 	assert(uiShaderProgram >= 0);
-	renderer_p->renderGroups[1] = CreateRendererGroup(RENDER_GROUP_UI, uiShaderProgram, MAX_UI_QUADS, true);
+	renderer_p->renderGroups[2] = CreateRendererGroup(RENDER_GROUP_UI, uiShaderProgram, MAX_UI_QUADS, true);
 
-	int textShaderProgram = LoadAndCompileShaders("../shaders/vertex_shader.vs", "../shaders/text_shader.fs"); 
+	int textShaderProgram = LoadAndCompileShaders("../shaders/vertex_shader.vs", "../shaders/text_shader.fs");
 	assert(textShaderProgram >= 0);
-	renderer_p->renderGroups[2] = CreateRendererGroup(RENDER_GROUP_TEXT_DEFAULT, textShaderProgram, MAX_TEXT_QUADS);
-
-	int wireframeShaderProgram = LoadAndCompileShaders("../shaders/wireframe_shader.vs", "../shaders/wireframe_shader.fs");
-	assert(wireframeShaderProgram >= 0);
-	renderer_p->renderGroups[3] = CreateRendererGroup(RENDER_GROUP_WIREFRAME, wireframeShaderProgram, MAX_WIREFRAME_QUADS, true);
+	renderer_p->renderGroups[3] = CreateRendererGroup(RENDER_GROUP_TEXT_DEFAULT, textShaderProgram, MAX_TEXT_QUADS);
 
 	renderer_p->groupCnt = 4;
 

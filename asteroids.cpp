@@ -12,6 +12,7 @@
 
 #define SHIP_ROTATION_SPEED    360 * 1.5f // Degrees per second.
 #define SHIP_ACCELERATION      1000.0f
+#define SHIP_BOOST             (4 * SHIP_ACCELERATION)
 #define SHIP_MAX_SPEED         1000.0f
 #define BULLET_SPEED           3000.0f
 #define MAX_BULLETS            20
@@ -29,9 +30,13 @@
 #define ASTEROID_SPEED_MIN     50
 #define ASTEROID_SPEED_MAX     60
 #define PARTICLE_LIFETIME      3.0f
-#define MAX_PARTICLES          100
+#define MAX_PARTICLES_DEBRIS   100
+#define MAX_PARTICLES_EXHAUST  200
 #define MAX_CHARGEDBULLETS     8
 #define CHARGEDBULLET_SPEED    2000.0f
+#define EXHAUST_FREQUENCY      10.0f
+#define COLOR_EXHAUST          Col(0.6f, 0.8f, 1.0f, 1.0f);
+#define COLOR_EXHAUST_BOOST    Col(0.957f, 1.0f, 0.475f, 1.0f);
 
 enum SceneE : U8
 {
@@ -82,6 +87,7 @@ struct Particle
 
 	Vector2 pos;
 	Vector2 vel;
+	Color color;
 };
 
 struct CollisionEntities
@@ -107,6 +113,12 @@ struct Level
 	int asteroidsCount;
 };
 
+struct ParticleSystem
+{
+	int index;
+	Particle* particles_p;
+};
+
 extern Vector2 ScreenDim;
 static SceneE scene;
 static Camera camera;
@@ -126,14 +138,23 @@ static double time;
 static int score;
 static int asteroidsRemaining = 0;
 static Level level;
-static Particle particles[MAX_PARTICLES];
-static int particleIdx = 0;
+static ParticleSystem psExhaust;
+static ParticleSystem psDebris;
+
 
 void GameInit()
 {
 	scene = SCENE_MAIN_MENU;
 	mainMenuScreen = MENU_MAIN;
 	time = 0;
+
+	memset(&psDebris, 0, sizeof(psDebris));
+	psDebris.index = 0;
+	psDebris.particles_p = (Particle*)malloc(MAX_PARTICLES_DEBRIS * sizeof(Particle));
+
+	memset(&psExhaust, 0, sizeof(psExhaust));
+	psExhaust.index = 0;
+	psExhaust.particles_p = (Particle*)malloc(MAX_PARTICLES_EXHAUST * sizeof(Particle));
 }
 
 static void BuildSolid(Solid* solid_p)
@@ -225,7 +246,7 @@ static void GameStart()
 
 	memset(&ship, 0, sizeof(ship));
 	ship.type = ENTITY_PLAYERSPACESHIP;
-	ship.size = 75.0f;
+	ship.size = 85.0f;
 	ship.colliderRadius = 0.8f * (ship.size / 2);
 	ship.facingV = VECTOR2_UP;
 	ship.enabled = true;
@@ -279,11 +300,6 @@ static void GameStart()
 		asteroids[i].pos = FindRandomPositionForAsteroid(asteroids[i].colliderRadius);
 		asteroids[i].vel = GetRandomValue(ASTEROID_SPEED_MIN, ASTEROID_SPEED_MAX) * RotateDeg(VECTOR2_UP, GetRandomValue(0, 360));
 	}
-	//asteroids[0].pos = V2(-200, -500);
-	//asteroids[0].vel = ASTEROID_SPEED_MAX * VECTOR2_RIGHT;
-	//asteroids[1].pos = V2(0, -600);
-	//asteroids[1].vel = ASTEROID_SPEED_MAX * VECTOR2_UP;
-
 
 	memset(chargedBullets, 0, sizeof(chargedBullets));
 	for (int i = 0; i < MAX_CHARGEDBULLETS; i++)
@@ -296,10 +312,20 @@ static void GameStart()
 	}
 	chargedBulletHolding_p = nullptr;
 
-	memset(particles, 0, sizeof(particles));
-	for (int i = 0; i < MAX_PARTICLES; i++)
+	psDebris.index = 0;
+	assert(psDebris.particles_p != nullptr);
+	for (int i = 0; i < MAX_PARTICLES_DEBRIS; i++)
 	{
-		particles[i].enabled = false;
+		psDebris.particles_p[i].enabled = false;
+		psDebris.particles_p[i].color = COLOR_WHITE;
+	}
+
+	psExhaust.index = 0;
+	assert(psExhaust.particles_p != nullptr);
+	for (int i = 0; i < MAX_PARTICLES_EXHAUST; i++)
+	{
+		psExhaust.particles_p[i].enabled = false;
+		psExhaust.particles_p[i].color = COLOR_EXHAUST;
 	}
 
 	memset(&entityCollisions, 0, sizeof(entityCollisions));
@@ -345,13 +371,28 @@ static int SpawnChildrenAsteroids(Vector2 pos)
 
 static void SpawnDebrisParticles(Vector2 pos, int count)
 {
+	Particle* particles = psDebris.particles_p;
 	for (int i = 0; i < count; i++)
 	{
-		Particle* particle_p = &particles[particleIdx++ % MAX_PARTICLES];
+		Particle* particle_p = &particles[psDebris.index++ % MAX_PARTICLES_DEBRIS];
 		particle_p->enabled = true;
 		particle_p->pos = pos + 20.0f * RotateDeg(VECTOR2_UP, GetRandomValue(0, 360));
 		particle_p->tEnabled = time;
 		particle_p->vel = 30.0f * RotateDeg(VECTOR2_UP, GetRandomValue(0, 360));
+	}
+}
+
+static void SpawnExhaustParticles(Vector2 pos, Vector2 facingV, Color colorParticle)
+{
+	Particle* particles = psExhaust.particles_p;
+	for (int i = 0; i < 1; i++)
+	{
+		Particle* particle_p = &particles[psExhaust.index++ % MAX_PARTICLES_EXHAUST];
+		particle_p->enabled = true;
+		particle_p->pos = pos;
+		particle_p->tEnabled = time;
+		particle_p->vel = RotateDeg(80.0f * facingV, GetRandomValue(-135, 135));
+		particle_p->color = colorParticle;
 	}
 }
 
@@ -591,6 +632,9 @@ static bool Blink(double tStartBlink)
 
 static void Game(float deltaT, Renderer* renderer_p)
 {
+	float shipAcceleration = 0.0f;
+	Vector2 shipAccelerationV = VECTOR2_ZERO;
+
 	if (paused) goto GAMEUPDATE_END;
 
 	time += deltaT;
@@ -599,25 +643,28 @@ static void Game(float deltaT, Renderer* renderer_p)
 	mouse.pos = MouseToWorldPos(mouse.pos);
 	
 	ship.facingV = Normalize(mouse.pos - ship.pos);
-
+	
 	if (GameInput_Button(BUTTON_W))
 	{
-		float acceleration = SHIP_ACCELERATION;
-		if (GameInput_Button(BUTTON_LSHIFT)) acceleration *= 4.0f;
-		ship.vel += acceleration * deltaT * Normalize(ship.facingV);
+		shipAcceleration = SHIP_ACCELERATION;
+		if (GameInput_Button(BUTTON_LSHIFT)) shipAcceleration = SHIP_BOOST;
+		shipAccelerationV = ship.facingV;
 	}
 	if (GameInput_Button(BUTTON_A))
 	{
+		shipAcceleration = SHIP_ACCELERATION;
 		Vector2 leftFacingV = RotateDeg(ship.facingV, 90);
-		ship.vel += SHIP_ACCELERATION * deltaT * Normalize(leftFacingV);
+		shipAccelerationV = leftFacingV;
 	}
 	if (GameInput_Button(BUTTON_D))
 	{
+		shipAcceleration = SHIP_ACCELERATION;
 		Vector2 rightFacingV = RotateDeg(ship.facingV, -90);
-		ship.vel += SHIP_ACCELERATION * deltaT * Normalize(rightFacingV);
+		shipAccelerationV = rightFacingV;
 	}
 
-	if (!(GameInput_Button(BUTTON_W) || GameInput_Button(BUTTON_A) || GameInput_Button(BUTTON_D)))
+	ship.vel += shipAcceleration * deltaT * Normalize(shipAccelerationV);
+	if (shipAcceleration == 0.0f)
 	{
 		ship.vel = 0.97f * ship.vel;
 	}
@@ -726,9 +773,19 @@ static void Game(float deltaT, Renderer* renderer_p)
 		}
 	}
 
-	for (int i = 0; i < MAX_PARTICLES; i++)
+	for (int i = 0; i < MAX_PARTICLES_DEBRIS; i++)
 	{
-		Particle* particle_p = &particles[i];
+		Particle* particle_p = &psDebris.particles_p[i];
+		if (particle_p->enabled)
+		{
+			particle_p->pos += deltaT * particle_p->vel;
+			if ((time - particle_p->tEnabled) > PARTICLE_LIFETIME) particle_p->enabled = false;
+		}
+	}
+
+	for (int i = 0; i < MAX_PARTICLES_EXHAUST; i++)
+	{
+		Particle* particle_p = &psExhaust.particles_p[i];
 		if (particle_p->enabled)
 		{
 			particle_p->pos += deltaT * particle_p->vel;
@@ -781,8 +838,43 @@ GAMEUPDATE_END:
 		}
 	}
 
+	for (int i = 0; i < MAX_PARTICLES_DEBRIS; i++)
+	{
+		Particle* particle_p = &psDebris.particles_p[i];
+		if (particle_p->enabled)
+		{
+			float lifePerc = (time - particle_p->tEnabled) / PARTICLE_LIFETIME;
+			Color color = particle_p->color; color.a = 1.0f - lifePerc;
+			PushCircle(renderer_p, particle_p->pos, 1.0f, color, 3);
+		}
+	}
+
+	for (int i = 0; i < MAX_PARTICLES_EXHAUST; i++)
+	{
+		Particle* particle_p = &psExhaust.particles_p[i];
+		if (particle_p->enabled)
+		{
+			float lifePerc = (time - particle_p->tEnabled) / PARTICLE_LIFETIME;
+			Color color = particle_p->color; color.a = 1.0f - lifePerc;
+			PushCircle(renderer_p, particle_p->pos, 1.0f, color, 3);
+		}
+	}
+
 	if (ship.enabled)
 	{
+		if (shipAcceleration > 0.0f)
+		{
+			Vector2 posExhaust = ship.pos - 0.77f * ship.size * ship.facingV;
+			float exhaustYScale = 0.1f * sin(2 * PI * EXHAUST_FREQUENCY * time) + 0.9f;
+			Rect uvExhaust = NewRect(V2(0.5306, 0.35), V2(0.1361, 0.65));
+			if (shipAcceleration >= SHIP_BOOST) uvExhaust = NewRect(V2(0, 0.35), V2(0.1361, 0.65));
+			PushSprite(renderer_p, posExhaust, V2(ship.size / 2, exhaustYScale * ship.size), -ship.facingV, TEXTURE_SHIPEXHAUST, COLOR_WHITE, uvExhaust);
+
+			Color colorParticle = COLOR_EXHAUST;
+			if (shipAcceleration >= SHIP_BOOST) colorParticle = COLOR_EXHAUST_BOOST;
+			SpawnExhaustParticles(ship.pos, -ship.facingV, colorParticle);
+		}
+
 		Color color = COLOR_WHITE;
 		if (time < ship.tInvisibility) color.a = Blink(ship.tEnabled) ? 1.0f : 0.0f;
 		if (time < ship.tTakingDamage) color.g = Blink(ship.tEnabled) ? 1.0f : 0.0f;
@@ -798,16 +890,6 @@ GAMEUPDATE_END:
 			if (time < asteroid_p->tInvisibility) color.a = Blink(ship.tEnabled) ? 1.0f : 0.0f;
 			PushSprite(renderer_p, asteroid_p->pos, asteroid_p->size * VECTOR2_ONE, asteroid_p->facingV, asteroid_p->textureHandle, color, asteroid_p->uv);
 			//PushCircle(renderer_p, asteroid_p->pos, asteroid_p->colliderRadius, COLOR_GREEN);
-		}
-	}
-
-	for (int i = 0; i < MAX_PARTICLES; i++)
-	{
-		Particle* particle_p = &particles[i];
-		if (particle_p->enabled)
-		{
-			float lifePerc = (time - particle_p->tEnabled) / PARTICLE_LIFETIME;
-			PushCircle(renderer_p, particle_p->pos, 1.0f, Col(1.0f, 1.0f, 1.0f, 1.0f - lifePerc), 3);
 		}
 	}
 

@@ -6,7 +6,8 @@
 #define TEXTURE_ELI           2
 #define TEXTURE_ASTEROID      3
 #define TEXTURE_CHARGEDBULLET 4
-#define TEXTURES_COUNT        5
+#define TEXTURE_SHIPEXHAUST   5
+#define TEXTURES_COUNT        6
 
 struct Texture
 {
