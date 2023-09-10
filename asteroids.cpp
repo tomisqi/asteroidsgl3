@@ -29,7 +29,8 @@
 #define ASTEROID_BIG           (ASTEROID_SIZE_MIN + (ASTEROID_SIZE_MAX - ASTEROID_SIZE_MIN) / 2)
 #define ASTEROID_SPEED_MIN     50
 #define ASTEROID_SPEED_MAX     60
-#define PARTICLE_LIFETIME      3.0f
+#define PARTICLE_DEBRIS_LIFETIME      3.0f
+#define PARTICLE_EXHAUST_LIFETIME     0.3f
 #define MAX_PARTICLES_DEBRIS   100
 #define MAX_PARTICLES_EXHAUST  200
 #define MAX_CHARGEDBULLETS     8
@@ -141,6 +142,7 @@ static Level level;
 static ParticleSystem psExhaust;
 static ParticleSystem psDebris;
 
+static bool PausedMenu();
 
 void GameInit()
 {
@@ -159,6 +161,7 @@ void GameInit()
 
 static void BuildSolid(Solid* solid_p)
 {
+	
 	solid_p->solidLines[0] = { V2(100, 100), V2(100, 1400) };
 	solid_p->solidLines[1] = { V2(1400, 100), V2(1400, 1400) };
 	solid_p->solidLines[2] = { V2(100, 1400), V2(1200, 1400) };
@@ -168,7 +171,7 @@ static void BuildSolid(Solid* solid_p)
 	solid_p->solidLines[5] = { V2(1100, 400), V2(1100, 1100) };
 	solid_p->solidLines[6] = { V2(400, 1100), V2(900, 1100) };
 	solid_p->solidLines[7] = { V2(400, 400), V2(1100, 400) };
-
+	
 	solid_p->solidLines[8] = { V2(-3000, -3000), V2(3000, -3000) };
 	solid_p->solidLines[9] = { V2(3000, -3000), V2(3000, 3000) };
 	solid_p->solidLines[10]= { V2(3000, 3000), V2(-3000, 3000) };
@@ -593,32 +596,6 @@ static Vector2 MouseToWorldPos(Vector2 mousepos)
 	return V2(x, y);
 }
 
-static bool PausedMenu()
-{
-	bool paused = true;
-	UILayout("PausedMenu");
-	{
-		if (UIButton("Continue", NewRect(VECTOR2_ZERO + V2(-120.0f, 100.0f), V2(250.0f, 50.0f))))
-		{
-			printf("Continue\n");
-			printf("Continue\n");
-			paused = false;
-		}
-		if (UIButton("Restart", NewRect(VECTOR2_ZERO + V2(-120.0f, 0.0f), V2(250.0f, 50.0f))))
-		{
-			printf("Restart\n");
-			paused = false;
-			GameStart();
-		}
-		if (UIButton("Main Menu", NewRect(VECTOR2_ZERO + V2(-120.0f, -100.0f), V2(250.0f, 50.0f))))
-		{
-			printf("Main Menu\n");
-			scene = SCENE_MAIN_MENU;
-		}
-	}
-	return paused;
-}
-
 #define PERIOD_BLINK_SPRITE 0.1f
 static bool Blink(double tStartBlink)
 {
@@ -649,6 +626,11 @@ static void Game(float deltaT, Renderer* renderer_p)
 		shipAcceleration = SHIP_ACCELERATION;
 		if (GameInput_Button(BUTTON_LSHIFT)) shipAcceleration = SHIP_BOOST;
 		shipAccelerationV = ship.facingV;
+	}
+	if (GameInput_Button(BUTTON_S) && Magnitude(ship.vel) > 0.1f)//&& Dot(ship.facingV, ship.vel) > 0)
+	{
+		shipAcceleration = -SHIP_BOOST;
+		shipAccelerationV = Normalize(ship.vel);
 	}
 	if (GameInput_Button(BUTTON_A))
 	{
@@ -702,14 +684,14 @@ static void Game(float deltaT, Renderer* renderer_p)
 			{
 				Entity* bullet1_p = &bullets[(bulletIdx++) % MAX_BULLETS];
 				bullet1_p->pos = ship.pos;
-				bullet1_p->facingV = RotateDeg(ship.facingV, 5 * (i + 1));
+				bullet1_p->facingV = RotateDeg(ship.facingV, 3 * (i + 1));
 				bullet1_p->vel = ship.vel + BULLET_SPEED * Normalize(bullet1_p->facingV);
 				bullet1_p->enabled = true;
 				bullet1_p->tEnabled = time;
 
 				Entity* bullet2_p = &bullets[(bulletIdx++) % MAX_BULLETS];
 				bullet2_p->pos = ship.pos;
-				bullet2_p->facingV = RotateDeg(ship.facingV, -5 * (i + 1));
+				bullet2_p->facingV = RotateDeg(ship.facingV, -3 * (i + 1));
 				bullet2_p->vel = ship.vel + BULLET_SPEED * Normalize(bullet2_p->facingV);
 				bullet2_p->enabled = true;
 				bullet2_p->tEnabled = time;
@@ -779,7 +761,7 @@ static void Game(float deltaT, Renderer* renderer_p)
 		if (particle_p->enabled)
 		{
 			particle_p->pos += deltaT * particle_p->vel;
-			if ((time - particle_p->tEnabled) > PARTICLE_LIFETIME) particle_p->enabled = false;
+			if ((time - particle_p->tEnabled) > PARTICLE_DEBRIS_LIFETIME) particle_p->enabled = false;
 		}
 	}
 
@@ -789,7 +771,7 @@ static void Game(float deltaT, Renderer* renderer_p)
 		if (particle_p->enabled)
 		{
 			particle_p->pos += deltaT * particle_p->vel;
-			if ((time - particle_p->tEnabled) > PARTICLE_LIFETIME) particle_p->enabled = false;
+			if ((time - particle_p->tEnabled) > PARTICLE_EXHAUST_LIFETIME) particle_p->enabled = false;
 		}
 	}
 
@@ -834,7 +816,8 @@ GAMEUPDATE_END:
 		Entity* chargedBullet_p = &chargedBullets[i];
 		if (chargedBullet_p->enabled)
 		{
-			PushSprite(renderer_p, chargedBullet_p->pos, chargedBullet_p->size * VECTOR2_ONE, chargedBullet_p->facingV, chargedBullet_p->textureHandle);
+			PushSprite(renderer_p, chargedBullet_p->pos, chargedBullet_p->size * V2(1.0f, 1.7f), chargedBullet_p->facingV, chargedBullet_p->textureHandle);
+			//PushCircle(renderer_p, chargedBullet_p->pos, chargedBullet_p->colliderRadius, COLOR_GREEN);
 		}
 	}
 
@@ -843,7 +826,7 @@ GAMEUPDATE_END:
 		Particle* particle_p = &psDebris.particles_p[i];
 		if (particle_p->enabled)
 		{
-			float lifePerc = (time - particle_p->tEnabled) / PARTICLE_LIFETIME;
+			float lifePerc = (time - particle_p->tEnabled) / PARTICLE_DEBRIS_LIFETIME;
 			Color color = particle_p->color; color.a = 1.0f - lifePerc;
 			PushCircle(renderer_p, particle_p->pos, 1.0f, color, 3);
 		}
@@ -854,7 +837,7 @@ GAMEUPDATE_END:
 		Particle* particle_p = &psExhaust.particles_p[i];
 		if (particle_p->enabled)
 		{
-			float lifePerc = (time - particle_p->tEnabled) / PARTICLE_LIFETIME;
+			float lifePerc = (time - particle_p->tEnabled) / PARTICLE_EXHAUST_LIFETIME;
 			Color color = particle_p->color; color.a = 1.0f - lifePerc;
 			PushCircle(renderer_p, particle_p->pos, 1.0f, color, 3);
 		}
@@ -872,7 +855,17 @@ GAMEUPDATE_END:
 
 			Color colorParticle = COLOR_EXHAUST;
 			if (shipAcceleration >= SHIP_BOOST) colorParticle = COLOR_EXHAUST_BOOST;
-			SpawnExhaustParticles(ship.pos, -ship.facingV, colorParticle);
+			SpawnExhaustParticles(posExhaust, -ship.facingV, colorParticle);
+		}
+
+		if (shipAcceleration < 0.0f)
+		{
+			Vector2 posExhaust1 = ship.pos + (ship.size / 4) * RotateDeg(ship.facingV,  90) + (ship.size / 8) * ship.facingV;
+			Vector2 posExhaust2 = ship.pos + (ship.size / 4) * RotateDeg(ship.facingV, -90) + (ship.size / 8) * ship.facingV;
+			float exhaustYScale = 0.1f * sin(2 * PI * EXHAUST_FREQUENCY * time) + 0.9f;
+			Rect uvExhaust = NewRect(V2(0.3197, 0.35), V2(0.0816, 0.40));
+			PushSprite(renderer_p, posExhaust1, V2(ship.size / 4, exhaustYScale * (ship.size/2)), RotateDeg(ship.facingV,  10), TEXTURE_SHIPEXHAUST, COLOR_WHITE, uvExhaust);
+			PushSprite(renderer_p, posExhaust2, V2(ship.size / 4, exhaustYScale * (ship.size/2)), RotateDeg(ship.facingV, -10), TEXTURE_SHIPEXHAUST, COLOR_WHITE, uvExhaust);
 		}
 
 		Color color = COLOR_WHITE;
@@ -904,6 +897,32 @@ GAMEUPDATE_END:
 	{
 		paused = !paused;
 	}
+}
+
+static bool PausedMenu()
+{
+	bool paused = true;
+	UILayout("PausedMenu");
+	{
+		if (UIButton("Continue", NewRect(VECTOR2_ZERO + V2(-120.0f, 100.0f), V2(250.0f, 50.0f))))
+		{
+			printf("Continue\n");
+			printf("Continue\n");
+			paused = false;
+		}
+		if (UIButton("Restart", NewRect(VECTOR2_ZERO + V2(-120.0f, 0.0f), V2(250.0f, 50.0f))))
+		{
+			printf("Restart\n");
+			paused = false;
+			GameStart();
+		}
+		if (UIButton("Main Menu", NewRect(VECTOR2_ZERO + V2(-120.0f, -100.0f), V2(250.0f, 50.0f))))
+		{
+			printf("Main Menu\n");
+			scene = SCENE_MAIN_MENU;
+		}
+	}
+	return paused;
 }
 
 static bool MainMenuMain()
