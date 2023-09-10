@@ -25,6 +25,7 @@
 #include "renderer.h"
 #include "ui.h"
 #include "test.h"
+
 #define STB_TRUETYPE_IMPLEMENTATION
 #include <stb_truetype.h>
 #define STB_IMAGE_IMPLEMENTATION
@@ -117,6 +118,7 @@ int main(void)
 	textures[TEXTURE_ASTEROID] = LoadTexture("../assets/textures/Asteroids.png");
 	textures[TEXTURE_CHARGEDBULLET] = LoadTexture("../assets/textures/BlueShot.png");
 	textures[TEXTURE_SHIPEXHAUST] = LoadTexture("../assets/textures/Exhaust.png");
+	textures[TEXTURE_EXPLOSIONBIG] = LoadTexture("../assets/textures/ExplosionBig.png");
 
 	OpenGL openGl;
 	OpenGLInit(&openGl);

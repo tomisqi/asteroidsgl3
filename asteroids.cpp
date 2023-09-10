@@ -9,6 +9,7 @@
 #include "intersect.h"
 #include "color.h"
 #include "utils.h"
+#include "animation.h"
 
 #define SHIP_ROTATION_SPEED    360 * 1.5f // Degrees per second.
 #define SHIP_ACCELERATION      1000.0f
@@ -141,6 +142,7 @@ static int asteroidsRemaining = 0;
 static Level level;
 static ParticleSystem psExhaust;
 static ParticleSystem psDebris;
+static Animation explosionBig;
 
 static bool PausedMenu();
 
@@ -331,6 +333,10 @@ static void GameStart()
 		psExhaust.particles_p[i].color = COLOR_EXHAUST;
 	}
 
+	explosionBig = AnimationBuild(5, 2, TEXTURE_EXPLOSIONBIG, 24.0f, false);
+	explosionBig.enabled = true;
+	explosionBig.tStart = time;
+
 	memset(&entityCollisions, 0, sizeof(entityCollisions));
 
 	score = 0;
@@ -441,6 +447,7 @@ static void EntityEntityCollisions(CollisionEntities* collisions_p)
 					if (asteroid_p->size >= ASTEROID_BIG)
 					{
 						asteroidsRemaining += SpawnChildrenAsteroids(asteroid_p->pos);
+
 					}
 					float sizePerc = (asteroid_p->size - ASTEROID_SIZE_MIN) / (ASTEROID_SIZE_MAX - ASTEROID_SIZE_MIN);
 					int particleCount = (int)(20 * sizePerc + 10);
@@ -627,7 +634,7 @@ static void Game(float deltaT, Renderer* renderer_p)
 		if (GameInput_Button(BUTTON_LSHIFT)) shipAcceleration = SHIP_BOOST;
 		shipAccelerationV = ship.facingV;
 	}
-	if (GameInput_Button(BUTTON_S) && Magnitude(ship.vel) > 0.1f)//&& Dot(ship.facingV, ship.vel) > 0)
+	if (GameInput_Button(BUTTON_S) && Magnitude(ship.vel) > 0.1f)
 	{
 		shipAcceleration = -SHIP_BOOST;
 		shipAccelerationV = Normalize(ship.vel);
@@ -786,6 +793,11 @@ static void Game(float deltaT, Renderer* renderer_p)
 		}
 	}
 
+	if (explosionBig.enabled)
+	{
+		AnimationUpdate(&explosionBig, time);
+	}
+
 	EntityEntityCollisions(&entityCollisions);
 	EntitySolidCollisions(&entityCollisions, deltaT, &solid);
 
@@ -884,6 +896,11 @@ GAMEUPDATE_END:
 			PushSprite(renderer_p, asteroid_p->pos, asteroid_p->size * VECTOR2_ONE, asteroid_p->facingV, asteroid_p->textureHandle, color, asteroid_p->uv);
 			//PushCircle(renderer_p, asteroid_p->pos, asteroid_p->colliderRadius, COLOR_GREEN);
 		}
+	}
+
+	if (explosionBig.enabled)
+	{
+		PushSprite(renderer_p, V2(0, -300), 300.0f * VECTOR2_ONE, VECTOR2_UP, explosionBig.textureHandle, COLOR_WHITE, AnimationGetCurrentUv(&explosionBig));
 	}
 
 	char buf[32] = { 0 }; sprintf(buf, "Score: %d", score);

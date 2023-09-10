@@ -7,7 +7,8 @@
 #define TEXTURE_ASTEROID      3
 #define TEXTURE_CHARGEDBULLET 4
 #define TEXTURE_SHIPEXHAUST   5
-#define TEXTURES_COUNT        6
+#define TEXTURE_EXPLOSIONBIG  6
+#define TEXTURES_COUNT        7
 
 struct Texture
 {
