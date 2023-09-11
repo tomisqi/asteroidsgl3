@@ -5,8 +5,8 @@
 // [x] UI
 // [ ] Audio
 // [x] Collisions
-// [ ] Animations
-// [ ] Particle system
+// [x] Animations
+// [x] Particle system
 // [x] Camera
 
 #include <stdio.h>
@@ -119,6 +119,8 @@ int main(void)
 	textures[TEXTURE_CHARGEDBULLET] = LoadTexture("../assets/textures/BlueShot.png");
 	textures[TEXTURE_SHIPEXHAUST] = LoadTexture("../assets/textures/Exhaust.png");
 	textures[TEXTURE_EXPLOSIONBIG] = LoadTexture("../assets/textures/ExplosionBig.png");
+	textures[TEXTURE_EXPLOSION5] = LoadTexture("../assets/textures/Explosion5.png");
+	textures[TEXTURE_EXPLOSIONSMALL] = LoadTexture("../assets/textures/ExplosionTiny.png");
 
 	OpenGL openGl;
 	OpenGLInit(&openGl);

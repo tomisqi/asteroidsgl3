@@ -161,7 +161,7 @@ void OpenGLEndFrame(OpenGL* openGl_p, Renderer* renderer_p, Texture textures[], 
 				if (vert_p->textureHandle != textureHandle)
 				{
 					textureHandle = vert_p->textureHandle;
-					Texture* texture_p = &textures[textureHandle];
+					Texture* texture_p = &textures[textureHandle];			
 					glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture_p->width, texture_p->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture_p->data_p);
 				}
 				//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);

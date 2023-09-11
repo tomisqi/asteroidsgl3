@@ -39,6 +39,7 @@
 #define EXHAUST_FREQUENCY      10.0f
 #define COLOR_EXHAUST          Col(0.6f, 0.8f, 1.0f, 1.0f);
 #define COLOR_EXHAUST_BOOST    Col(0.957f, 1.0f, 0.475f, 1.0f);
+#define MAX_EXPLOSIONS_SMALL   16
 
 enum SceneE : U8
 {
@@ -121,6 +122,14 @@ struct ParticleSystem
 	Particle* particles_p;
 };
 
+struct AnimationObject
+{
+	bool enabled;
+	Vector2 pos;
+	TextureHandleT textureHandle;
+	Animation animation;
+};
+
 extern Vector2 ScreenDim;
 static SceneE scene;
 static Camera camera;
@@ -142,7 +151,9 @@ static int asteroidsRemaining = 0;
 static Level level;
 static ParticleSystem psExhaust;
 static ParticleSystem psDebris;
-static Animation explosionBig;
+static AnimationObject explosionCharged;
+static int explosionsSmallIdx;
+static AnimationObject explosionsSmall[MAX_EXPLOSIONS_SMALL];
 
 static bool PausedMenu();
 
@@ -333,9 +344,18 @@ static void GameStart()
 		psExhaust.particles_p[i].color = COLOR_EXHAUST;
 	}
 
-	explosionBig = AnimationBuild(5, 2, TEXTURE_EXPLOSIONBIG, 24.0f, false);
-	explosionBig.enabled = true;
-	explosionBig.tStart = time;
+	memset(&explosionCharged, 0, sizeof(explosionCharged));
+	explosionCharged.enabled = false;
+	explosionCharged.textureHandle = TEXTURE_EXPLOSION5;
+	explosionCharged.animation = AnimationBuild(2, 2, 4, 24.0f, false);
+
+	memset(&explosionsSmall, 0, sizeof(explosionsSmall));
+	for (int i = 0; i < MAX_EXPLOSIONS_SMALL; i++)
+	{
+		explosionsSmall[i].enabled = false;
+		explosionsSmall[i].textureHandle = TEXTURE_EXPLOSIONSMALL;
+		explosionsSmall[i].animation = AnimationBuild(3, 3, 8, 24.0f, false);
+	}
 
 	memset(&entityCollisions, 0, sizeof(entityCollisions));
 
@@ -449,6 +469,12 @@ static void EntityEntityCollisions(CollisionEntities* collisions_p)
 						asteroidsRemaining += SpawnChildrenAsteroids(asteroid_p->pos);
 
 					}
+
+					AnimationObject* explosionSmall_p = &explosionsSmall[(explosionsSmallIdx++) % MAX_EXPLOSIONS_SMALL];
+					explosionSmall_p->enabled = true;
+					explosionSmall_p->pos = bullet_p->pos + bullet_p->colliderRadius * Normalize(asteroid_p->pos - bullet_p->pos);
+					explosionSmall_p->animation.tStart = time;
+
 					float sizePerc = (asteroid_p->size - ASTEROID_SIZE_MIN) / (ASTEROID_SIZE_MAX - ASTEROID_SIZE_MIN);
 					int particleCount = (int)(20 * sizePerc + 10);
 					SpawnDebrisParticles(asteroid_p->pos, particleCount);
@@ -561,6 +587,10 @@ static void EntitySolidCollisions(CollisionEntities* entities_p, float deltaT, S
 				{
 					Entity* chargedBullet_p = entity_p;
 					chargedBullet_p->enabled = false;
+
+					explosionCharged.enabled = true;
+					explosionCharged.pos = p;
+					explosionCharged.animation.tStart = time;
 				}
 				break;
 				case ENTITY_ENEMYBULLET:
@@ -636,7 +666,7 @@ static void Game(float deltaT, Renderer* renderer_p)
 	}
 	if (GameInput_Button(BUTTON_S) && Magnitude(ship.vel) > 0.1f)
 	{
-		shipAcceleration = -SHIP_BOOST;
+		shipAcceleration = -2*SHIP_BOOST;
 		shipAccelerationV = Normalize(ship.vel);
 	}
 	if (GameInput_Button(BUTTON_A))
@@ -793,9 +823,18 @@ static void Game(float deltaT, Renderer* renderer_p)
 		}
 	}
 
-	if (explosionBig.enabled)
+	if (explosionCharged.enabled)
 	{
-		AnimationUpdate(&explosionBig, time);
+		explosionCharged.enabled = !AnimationUpdate(&explosionCharged.animation, time);
+	}
+
+	for (int i = 0; i < MAX_EXPLOSIONS_SMALL; i++)
+	{
+		AnimationObject* explosionSmall_p = &explosionsSmall[i];
+		if (explosionSmall_p->enabled)
+		{
+			explosionSmall_p->enabled = !AnimationUpdate(&explosionSmall_p->animation, time);
+		}
 	}
 
 	EntityEntityCollisions(&entityCollisions);
@@ -898,9 +937,18 @@ GAMEUPDATE_END:
 		}
 	}
 
-	if (explosionBig.enabled)
+	if (explosionCharged.enabled)
 	{
-		PushSprite(renderer_p, V2(0, -300), 300.0f * VECTOR2_ONE, VECTOR2_UP, explosionBig.textureHandle, COLOR_WHITE, AnimationGetCurrentUv(&explosionBig));
+		PushSprite(renderer_p, explosionCharged.pos, 200.0f * VECTOR2_ONE, VECTOR2_UP, explosionCharged.textureHandle, Col(0.537f, 0.902f, 1.0f), AnimationGetCurrentUv(&explosionCharged.animation));
+	}
+
+	for (int i = 0; i < MAX_EXPLOSIONS_SMALL; i++)
+	{
+		AnimationObject* explosionSmall_p = &explosionsSmall[i];
+		if (explosionSmall_p->enabled)
+		{
+			PushSprite(renderer_p, explosionSmall_p->pos, 50.0f * VECTOR2_ONE, VECTOR2_UP, explosionSmall_p->textureHandle, COLOR_WHITE, AnimationGetCurrentUv(&explosionSmall_p->animation));
+		}
 	}
 
 	char buf[32] = { 0 }; sprintf(buf, "Score: %d", score);
