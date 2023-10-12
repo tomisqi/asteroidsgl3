@@ -43,9 +43,8 @@ void GameInput_NewFrame(ButtonState newButtonStates[], bool mouseIsPressed, Vect
 		}
 	}
 
-	// MousePosScreen.x is Ok, but we flip MousePosScreen.y.
 	Vector2 prevMousePos = gameInput.mouse.pos;
-	gameInput.mouse.pos = V2(mousePosScreen.x, screenDim.y - mousePosScreen.y);
+	gameInput.mouse.pos = V2(mousePosScreen.x, screenDim.y - mousePosScreen.y); // MousePosScreen.x is Ok, but we flip MousePosScreen.y.
 	gameInput.mouse.mouseMoved = (prevMousePos != gameInput.mouse.pos);
 
 	for (int i = 0; i < MAX_BUTTONS; i++)

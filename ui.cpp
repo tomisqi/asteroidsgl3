@@ -16,6 +16,7 @@
 #define TEXT_CURSOR_BLINKING_PERIOD 1.2f // The following periodicity: WHITE->TRANSPARENT->WHITE->TRANSPARENT-> etc..
 #define MAX_TEXT_INPUTS             10
 
+
 enum UIDirectionE : U8
 {
 	UI_DOWN,
@@ -79,7 +80,7 @@ void UIInit(Renderer* renderer_p)
 static Mouse GetUiMouse()
 {
 	Mouse mouse = GameInput_GetMouse();
-	mouse.pos = V2(mouse.pos.x - ui.screenDim.x / 2, mouse.pos.y - ui.screenDim.y / 2); // Fix position.
+	mouse.pos = V2(mouse.pos.x/ui.screenDim.x, mouse.pos.y/ui.screenDim.y); // Fix position to be 01
 	return mouse;
 }
 
@@ -116,7 +117,8 @@ void UINewFrame(float deltaT, Vector2 screenDim)
 			if (RectContains(rect, mouse.pos)) 
 			{ 
 				ui.textInputActive = i; 
-			break; }
+				break; 
+			}
 		}
 	}
 	ui.textInputsCount = 0;
@@ -169,7 +171,7 @@ void UILayout(const char* name)
 	if (GameInput_ButtonDown(BUTTON_UP_ARROW))    UIMoveInLayout(layout_p, UI_UP);
 }
 
-bool UIButton(const char* text, Rect rect)
+bool UIButton(const char* text, Rect rect, UITextAlignmentE textAlignment)
 {
 	assert(ui.activeLayoutId != S64_MAX);
 
@@ -184,22 +186,41 @@ bool UIButton(const char* text, Rect rect)
 	S16 buttonIdx = layout_p->buttonIdx++;
 
 	Mouse mouse = GetUiMouse();
+	//printf("{%.2f, %.2f}\n", mouse.pos.x, mouse.pos.y);
 	if (RectContains(rect, mouse.pos))
 	{
 		layout_p->highlightedButtonIdx = buttonIdx;
 	}
 
-	Vector2 rectCenterPos = GetRectCenter(rect);
+	Vector2 rectCenter = GetRectCenter(rect);
+	float textWidth = ScreenSizeToSize01(V2(GetTextWidth(ui.renderer_p, text), 0)).x;
+	float textXPos = 0;
+	switch (textAlignment)
+	{
+	case TEXT_ALIGN_CENTER:
+		textXPos = rectCenter.x - (textWidth / 2.0f);
+		break;
+	case TEXT_ALIGN_LEFT:
+		textXPos = rect.pos.x;
+		break;
+	case TEXT_ALIGN_RIGHT:
+		textXPos = rect.pos.x + rect.size.x - textWidth;
+		break;
+	default:
+		assert(false);
+		break;
+	}
+
 	if (layout_p->highlightedButtonIdx == buttonIdx)
 	{
-		PushUiRect(ui.renderer_p, rect, COLOR_BLUE);
-		PushText(ui.renderer_p, text, V2(rectCenterPos.x - rect.size.x / 4 + 20.0f, -rectCenterPos.y), COLOR_WHITE);
+		PushUiRect01(ui.renderer_p, rect, COLOR_BLUE);
+		PushText01(ui.renderer_p, text, V2(textXPos, rectCenter.y - 0.005f), COLOR_WHITE);
 		if (layout_p->highlightedButtonConfirm) return true;
 	}
 	else
 	{
-		PushUiRect(ui.renderer_p, rect, Col(0.804f, 0.667f, 1.0f));
-		PushText(ui.renderer_p, text, V2(rectCenterPos.x - rect.size.x / 4 + 20.0f, -rectCenterPos.y), COLOR_BLACK);
+		PushUiRect01(ui.renderer_p, rect, Col(0.804f, 0.667f, 1.0f));
+		PushText01(ui.renderer_p, text, V2(textXPos, rectCenter.y - 0.005f), COLOR_BLACK);
 	}
 
 	// If this is the last button, reset the activeLayoutId to make sure other buttons are part of another layout.

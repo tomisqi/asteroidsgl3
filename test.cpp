@@ -117,21 +117,42 @@ bool Test(Renderer* renderer_p, float deltaT)
 	player2.pos += deltaT * player2.vel;
 
 	// Players
-	PushCircle(renderer_p, player.pos, player.size/2, COLOR_GREEN, 64);
-	PushCircle(renderer_p, player2.pos, player2.size / 2, COLOR_YELLOW, 64);
+	//PushCircle(renderer_p, player.pos, player.size/2, COLOR_GREEN, 64);
+	//PushCircle(renderer_p, player2.pos, player2.size / 2, COLOR_YELLOW, 64);
 
 	// Hole
-	PushCircle(renderer_p, holePos, player2.size / 2, COLOR_GRAY, 8);
+	//PushCircle(renderer_p, holePos, player2.size / 2, COLOR_GRAY, 8);
 
 	// CollisionP
-	PushXCross(renderer_p, collisionP, COLOR_CYAN);
+	//PushXCross(renderer_p, collisionP, COLOR_CYAN);
 
 	CheckCollision(&player, &player2);
 
-	static char buf[64] = { 0 };
-	UITextInput(NewRect(V2(-380,350), V2(200, 25)), buf);
-	static char buf2[64] = { 0 };
-	UITextInput(NewRect(V2(-380, 300), V2(200, 25)), buf2);
+	UILayout("Buttons");
+	{
+		if (UIButton("1234567890987654321", NewRect(V2(0.25f, 0.5f), V2(0.5f, 0.05f)), TEXT_ALIGN_CENTER))
+		{
+			printf("Click!\n");
+		}
+	}
+
+	//static char bufx[32] = { 0 }; static char bufy[32] = { 0 };
+	//UITextInput(NewRect(V2(-380, 350), V2(200, 25)), bufx);
+	//UITextInput(NewRect(V2(-380, 310), V2(200, 25)), bufy);
+	//float x = atof(bufx);
+	//float y = atof(bufy);
+
+	//UITextInput(NewRect(V2(0.1f, 0.1f), V2(0.1f, 0.1f)), buf);
+
+	//PushText01(renderer_p, "Hello World!", V2(x, y), COLOR_WHITE);
+	//PushText(renderer_p, "Hello World2!", mouse.pos, COLOR_WHITE);
+	//PushText(renderer_p, buf, V2(-380, 380), COLOR_WHITE);
+
+	//static char buf[64] = { 0 };
+	//UITextInput(NewRect(V2(-380,350), V2(200, 25)), buf);
+	//UITextInput(NewRect(V2(0, 0.1f), V2(0.1f, 0.1f)), buf);
+	//static char buf2[64] = { 0 };
+	//UITextInput(NewRect(V2(-380, 300), V2(200, 25)), buf2);
 
 	SetWireframeOrtographicProj(renderer_p, NewRectCenterPos(VECTOR2_ZERO, ScreenDim));
 

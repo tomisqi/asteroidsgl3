@@ -185,6 +185,12 @@ void PushUiRect(Renderer* renderer_p, Rect rect, Color color)
 	renderCmds_p->indexCount += 6;
 }
 
+void PushUiRect01(Renderer* renderer_p, Rect rect01, Color color)
+{
+	Rect rect = NewRect(Coord01ToScreenCoord(rect01.pos), Size01ToScreenSize(rect01.size));
+	PushUiRect(renderer_p, rect, color);
+}
+
 float GetCharPosX(stbtt_bakedchar* bakedCharData_p, float startPosX, const char* text, int charIdx)
 {
 	float posX = startPosX;
@@ -201,7 +207,15 @@ float GetCharPosX(stbtt_bakedchar* bakedCharData_p, float startPosX, const char*
 		++idx;
 		++text;
 	}
-	return startPosX;
+	//return startPosX;
+	return posX;
+}
+
+float GetTextWidth(Renderer* renderer_p, const char* text)
+{
+	RenderGroup* rendGrp_p = FindRenderGroup(renderer_p, RENDER_GROUP_TEXT_DEFAULT);
+	stbtt_bakedchar* bakedCharData_p = renderer_p->textRendering.charUvData;
+	return GetCharPosX(bakedCharData_p, 0, text, strlen(text));
 }
 
 void PushText(Renderer* renderer_p, const char* text, Vector2 pos, Color color, float maxX)
@@ -220,23 +234,23 @@ void PushText(Renderer* renderer_p, const char* text, Vector2 pos, Color color, 
 			assert(renderCmds_p->vertexCount < renderCmds_p->maxVertexCount);
 			assert(renderCmds_p->indexCount < renderCmds_p->maxIndexCount);
 
-			stbtt_aligned_quad q;
-			stbtt_GetBakedQuad(bakedCharData_p, 512, 512, *text - 32, &pos.x, &pos.y, &q, 1);//1=opengl & d3d10+,0=d3d9
+			stbtt_aligned_quad quad;
+			stbtt_GetBakedQuad(bakedCharData_p, 512, 512, *text - 32, &pos.x, &pos.y, &quad, 1);//1=opengl & d3d10+,0=d3d9
 			TexturedVertex* vert_p = &renderCmds_p->vertexArray[renderCmds_p->vertexCount];
-			
+	
 			// Note this is flipped but we fix it in the shader.
-            vert_p[0].pos = V3(q.x0, q.y0, 0.0f);
+			vert_p[0].pos = V3(quad.x0, quad.y0, 0.0f);
  			vert_p[0].color = color;
-			vert_p[0].uv = V2(q.s0, q.t0);
-			vert_p[1].pos = V3(q.x1, q.y0, 0.0f);
+			vert_p[0].uv = V2(quad.s0, quad.t0);
+			vert_p[1].pos = V3(quad.x1, quad.y0, 0.0f);
 			vert_p[1].color = color;
-			vert_p[1].uv = V2(q.s1, q.t0);
-			vert_p[2].pos = V3(q.x1, q.y1, 0.0f);
+			vert_p[1].uv = V2(quad.s1, quad.t0);
+			vert_p[2].pos = V3(quad.x1, quad.y1, 0.0f);
 			vert_p[2].color = color;
-			vert_p[2].uv = V2(q.s1, q.t1);
-			vert_p[3].pos = V3(q.x0, q.y1, 0.0f);
+			vert_p[2].uv = V2(quad.s1, quad.t1);
+			vert_p[3].pos = V3(quad.x0, quad.y1, 0.0f);
 			vert_p[3].color = color;
-			vert_p[3].uv = V2(q.s0, q.t1);
+			vert_p[3].uv = V2(quad.s0, quad.t1);
 
 			U16 baseIndex = renderCmds_p->vertexCount;
 			U16* index_p = &renderCmds_p->indexArray[renderCmds_p->indexCount];
@@ -253,6 +267,12 @@ void PushText(Renderer* renderer_p, const char* text, Vector2 pos, Color color, 
 		++idx;
 		++text;
 	}
+}
+
+void PushText01(Renderer* renderer_p, const char* text, Vector2 pos01, Color color)
+{
+	Vector2 pos = Coord01ToScreenCoordText(pos01);
+	PushText(renderer_p, text, pos, color);
 }
 
 void PushRect(Renderer* renderer_p, Rect rect, Color color, Vector2 facingV)

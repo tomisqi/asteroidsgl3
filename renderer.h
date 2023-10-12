@@ -81,10 +81,34 @@ void SetSpritesOrtographicProj(Renderer* renderer_p, Rect rect);
 void SetWireframeOrtographicProj(Renderer* renderer_p, Rect rect);
 void PushSprite(Renderer* renderer_p, Vector2 pos, Vector2 size, Vector2 facingV, TextureHandleT textureHandle, Color color = COLOR_WHITE, Rect uvRect = RECT_ONE);
 void PushUiRect(Renderer* renderer_p, Rect rect, Color color);
+void PushUiRect01(Renderer* renderer_p, Rect rect01, Color color);
 void PushText(Renderer* renderer_p, const char* text, Vector2 pos, Color color, float maxX = F32_MAX);
+void PushText01(Renderer* renderer_p, const char* text, Vector2 pos01, Color color);
 void PushRect(Renderer* renderer_p, Rect rect, Color color, Vector2 facingV  = VECTOR2_UP);
 void PushLine(Renderer* renderer_p, Vector2 startPos, Vector2 endPos, Color color, float thickness = 0.1f);
 void PushCircle(Renderer* renderer_p, Vector2 centerPos, float radius, Color color, int edges = 16);
 void PushVector(Renderer* renderer_p, Vector2 pos, Vector2 v, Color color = COLOR_WHITE);
 void PushXCross(Renderer* renderer_p, Vector2 pos, Color color);
 float GetCharPosX(stbtt_bakedchar* bakedCharData_p, float startPosX, const char* text, int charIdx);
+float GetTextWidth(Renderer* renderer_p, const char* text);
+
+extern Vector2 ScreenDim;
+static inline Vector2 Coord01ToScreenCoordText(Vector2 coord01)
+{
+	Vector2 screenCoord = { -ScreenDim.x / 2 + coord01.x * ScreenDim.x, ScreenDim.y / 2 - coord01.y * ScreenDim.y };
+	return screenCoord;
+}
+static inline Vector2 Coord01ToScreenCoord(Vector2 coord01)
+{
+	Vector2 screenCoord = { -ScreenDim.x / 2 + coord01.x * ScreenDim.x, -ScreenDim.y / 2 + coord01.y * ScreenDim.y };
+	return screenCoord;
+}
+static inline Vector2 Size01ToScreenSize(Vector2 size01)
+{
+	Vector2 screenSize = size01 * ScreenDim;
+	return screenSize;
+}
+static inline Vector2 ScreenSizeToSize01(Vector2 screenSize)
+{
+	return V2(screenSize.x / ScreenDim.x, screenSize.y / ScreenDim.y);
+}
