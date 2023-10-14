@@ -12,7 +12,6 @@
 #include "input.h"
 #include "utils.h"
 
-#define MAX_LAYOUTS				    256
 #define TEXT_CURSOR_BLINKING_PERIOD 1.2f // The following periodicity: WHITE->TRANSPARENT->WHITE->TRANSPARENT-> etc..
 #define MAX_TEXT_INPUTS             10
 
@@ -33,17 +32,6 @@ struct TextInput
 	Rect rect;
 };
 
-struct LayoutData
-{
-	bool layoutActive;
-	bool layoutDone;
-
-	S16 buttonIdx;
-	int buttonsCount;
-	S16 highlightedButtonIdx;
-	bool highlightedButtonConfirm;
-};
-
 struct UiContext
 {
 	Renderer* renderer_p;
@@ -57,8 +45,9 @@ struct UiContext
 	int textInputsCount;
 	TextInput textInputs[MAX_TEXT_INPUTS];
 
-	S64 activeLayoutId;
-	LayoutData layouts[MAX_LAYOUTS];
+	int buttonActive;
+	int buttonIdx;
+	int buttonsCount;
 };
 
 static UiContext ui;
@@ -67,14 +56,9 @@ void UIInit(Renderer* renderer_p)
 {
 	memset(&ui, 0, sizeof(ui));
 	ui.renderer_p = renderer_p;
-	ui.activeLayoutId = S64_MAX;
 	ui.time = 0;
 	ui.textInputActive = -1;
-
-	for (int i = 0; i < MAX_LAYOUTS; i++)
-	{
-		ui.layouts[i].highlightedButtonIdx = -1;
-	}
+	ui.buttonActive = -1;
 }
 
 static Mouse GetUiMouse()
@@ -95,19 +79,6 @@ void UINewFrame(float deltaT, Vector2 screenDim)
 
 	Mouse mouse = GetUiMouse();
 
-	for (int i = 0; i < MAX_LAYOUTS; i++)
-	{
-		if (ui.layouts[i].layoutActive)
-		{
-			ui.layouts[i].layoutDone = true;
-			ui.layouts[i].buttonIdx = 0;
-			ui.layouts[i].highlightedButtonConfirm = false;
-
-			S16 prevHighlight = ui.layouts[i].highlightedButtonIdx;
-			ui.layouts[i].highlightedButtonIdx = -1;
-			if (!mouse.mouseMoved) ui.layouts[i].highlightedButtonIdx = prevHighlight; // If mouse hasn't moved, keep the prev highlight.
-		}
-	}
 	if (mouse.state == MOUSE_PRESSED)
 	{
 		ui.textInputActive = -1;
@@ -123,6 +94,17 @@ void UINewFrame(float deltaT, Vector2 screenDim)
 	}
 	ui.textInputsCount = 0;
 	
+	if (ui.buttonIdx != ui.buttonsCount) ui.buttonsCount = ui.buttonIdx;
+	ui.buttonIdx = 0;
+	if (mouse.mouseMoved) ui.buttonActive = -1;
+	if (GameInput_ButtonDown(BUTTON_DOWN_ARROW) && ui.buttonsCount)
+	{
+		ui.buttonActive = (ui.buttonActive + 1) % ui.buttonsCount;
+	}
+	if (GameInput_ButtonDown(BUTTON_UP_ARROW) && ui.buttonsCount)
+	{
+		ui.buttonActive = ui.buttonActive > 0 ? (ui.buttonActive - 1) : ui.buttonsCount - 1;
+	}
 
 #if 0
 	char buf[32] = { 0 };
@@ -140,35 +122,6 @@ void UINewFrame(float deltaT, Vector2 screenDim)
 	if (mouse.state == MOUSE_DOUBLECLICK) sprintf(mousestate, "%s", "\n\nDOUBLECLICK\n\n");
 	printf("%s ", mousestate);
 #endif
-}
-
-static void UIMoveInLayout(LayoutData* layout_p, UIDirectionE direction)
-{
-	if (direction == UI_DOWN) layout_p->highlightedButtonIdx += 1;
-	if (direction == UI_UP)   layout_p->highlightedButtonIdx -= 1;
-
-	if (layout_p->highlightedButtonIdx >= layout_p->buttonsCount) layout_p->highlightedButtonIdx = 0;
-	if (layout_p->highlightedButtonIdx < 0)                       layout_p->highlightedButtonIdx = layout_p->buttonsCount - 1;
-}
-
-void UILayout(const char* name)
-{
-	S64 id = HashString((const unsigned char*)name); // @todo: Check for collisions.
-	ui.activeLayoutId = id;
-
-	LayoutData* layout_p = &ui.layouts[id % MAX_LAYOUTS];
-	layout_p->layoutActive = true;
-
-	if (!layout_p->layoutDone) return;
-
-	Mouse mouse = GetUiMouse();
-	if (mouse.state == MOUSE_PRESSED || GameInput_ButtonDown(BUTTON_ENTER))
-	{
-		layout_p->highlightedButtonConfirm = true;
-	}
-
-	if (GameInput_ButtonDown(BUTTON_DOWN_ARROW))  UIMoveInLayout(layout_p, UI_DOWN);
-	if (GameInput_ButtonDown(BUTTON_UP_ARROW))    UIMoveInLayout(layout_p, UI_UP);
 }
 
 static Vector2 GetTextPos(const char* text, Rect rect, UITextAlignmentE textAlignment)
@@ -207,40 +160,21 @@ void UILabel(const char* text, Vector2 pos, UITextAlignmentE textAlignment, Colo
 }
 
 bool UIButton(const char* text, Rect rect, UITextAlignmentE textAlignment)
-{
-	assert(ui.activeLayoutId != S64_MAX);
-
-    LayoutData* layout_p = &ui.layouts[ui.activeLayoutId % MAX_LAYOUTS]; 
-	if (!layout_p->layoutDone)
-	{
-		// We're still discovering the layout. We need a full frame to do that.
-		layout_p->buttonsCount++;
-		return false;
-	}
-	
-	S16 buttonIdx = layout_p->buttonIdx++;
-
+{	
 	Mouse mouse = GetUiMouse();
-	//printf("{%.2f, %.2f}\n", mouse.pos.x, mouse.pos.y);
-	if (RectContains(rect, mouse.pos))
-	{
-		layout_p->highlightedButtonIdx = buttonIdx;
-	}
+	int thisButton = ui.buttonIdx++;
 
-	if (layout_p->highlightedButtonIdx == buttonIdx)
+	if (RectContains(rect, mouse.pos) || (ui.buttonActive == thisButton))
 	{
 		PushUiRect01(ui.renderer_p, rect, COLOR_BLUE);
 		UILabel(text, rect, textAlignment, COLOR_WHITE);
-		if (layout_p->highlightedButtonConfirm) return true;
+		if (mouse.state == MOUSE_PRESSED || GameInput_ButtonDown(BUTTON_ENTER)) return true;
 	}
 	else
 	{
 		PushUiRect01(ui.renderer_p, rect, Col(0.804f, 0.667f, 1.0f));
 		UILabel(text, rect, textAlignment, COLOR_BLACK);
 	}
-
-	// If this is the last button, reset the activeLayoutId to make sure other buttons are part of another layout.
-	if (layout_p->buttonIdx == layout_p->buttonsCount) ui.activeLayoutId = S64_MAX;
 
 	return false;
 }

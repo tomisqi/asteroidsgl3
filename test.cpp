@@ -128,12 +128,9 @@ bool Test(Renderer* renderer_p, float deltaT)
 
 	CheckCollision(&player, &player2);
 
-	UILayout("Buttons");
+	if (UIButton("1234567890987654321", NewRect(V2(0.25f, 0.5f), V2(0.5f, 0.05f)), TEXT_ALIGN_CENTER))
 	{
-		if (UIButton("1234567890987654321", NewRect(V2(0.25f, 0.5f), V2(0.5f, 0.05f)), TEXT_ALIGN_CENTER))
-		{
-			printf("Click!\n");
-		}
+		printf("Click!\n");
 	}
 
 	//static char bufx[32] = { 0 }; static char bufy[32] = { 0 };

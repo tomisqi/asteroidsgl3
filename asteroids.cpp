@@ -971,7 +971,6 @@ GAMEUPDATE_END:
 static bool PausedMenu()
 {
 	bool paused = true;
-	UILayout("PausedMenu");
 	{
 		if (UIButton("Continue", NewRect(V2(0.35f, 0.6f), V2(0.3f, 0.05f))))
 		{
@@ -997,37 +996,31 @@ static bool PausedMenu()
 static bool MainMenuMain()
 {
 	bool quitGame = false;
-	UILayout("MainMenu");
+	if (UIButton("Start Game", NewRect(V2(0.35f, 0.6f), V2(0.3f, 0.05f))))
 	{
-		if (UIButton("Start Game", NewRect(V2(0.35f, 0.6f), V2(0.3f, 0.05f))))
-		{
-			printf("Start Game\n");
-			GameStart();
-			scene = SCENE_GAME;
-		}
-		if (UIButton("Settings", NewRect(V2(0.35f, 0.5f), V2(0.3f, 0.05f))))
-		{
-			printf("Settings\n");
-			mainMenuScreen = MENU_SETTINGS;
-		}
-		if (UIButton("Quit Game", NewRect(V2(0.35f, 0.4f), V2(0.3f, 0.05f))))
-		{
-			printf("Quit Game\n");
-			quitGame = true;
-		}
+		printf("Start Game\n");
+		GameStart();
+		scene = SCENE_GAME;
+	}
+	if (UIButton("Settings", NewRect(V2(0.35f, 0.5f), V2(0.3f, 0.05f))))
+	{
+		printf("Settings\n");
+		mainMenuScreen = MENU_SETTINGS;
+	}
+	if (UIButton("Quit Game", NewRect(V2(0.35f, 0.4f), V2(0.3f, 0.05f))))
+	{
+		printf("Quit Game\n");
+		quitGame = true;
 	}
 	return quitGame;
 }
 
 static void Settings()
 {
-	UILayout("Settings");
+	if (UIButton("Go Back", NewRect(V2(0.4f, 0.5f), V2(0.2f, 0.05f))) || GameInput_ButtonDown(BUTTON_ESC))
 	{
-		if (UIButton("Go Back", NewRect(V2(0.4f, 0.5f), V2(0.2f, 0.05f)), TEXT_ALIGN_LEFT) || GameInput_ButtonDown(BUTTON_ESC))
-		{
-			printf("Go Back\n");
-			mainMenuScreen = MENU_MAIN;
-		}
+		printf("Go Back\n");
+		mainMenuScreen = MENU_MAIN;
 	}
 }
 

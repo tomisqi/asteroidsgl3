@@ -17,8 +17,6 @@ void UINewFrame(float deltaT, Vector2 screenDim);
 
 bool UIButton(const char* text, Rect rect, UITextAlignmentE textAlignment = TEXT_ALIGN_CENTER);
 
-void UILayout(const char* name);
-
 void UITextInput(Rect rect, char* textBuf);
 
 void UILabel(const char* text, Rect rect, UITextAlignmentE textAlignment = TEXT_ALIGN_CENTER, Color color = COLOR_WHITE);
