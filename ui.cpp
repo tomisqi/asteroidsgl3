@@ -171,6 +171,41 @@ void UILayout(const char* name)
 	if (GameInput_ButtonDown(BUTTON_UP_ARROW))    UIMoveInLayout(layout_p, UI_UP);
 }
 
+static Vector2 GetTextPos(const char* text, Rect rect, UITextAlignmentE textAlignment)
+{
+	Vector2 rectCenter = GetRectCenter(rect);
+	float textWidth = ScreenSizeToSize01(V2(GetTextWidth(ui.renderer_p, text), 0)).x;
+	float textXPos = 0;
+	switch (textAlignment)
+	{
+	case TEXT_ALIGN_CENTER:
+		textXPos = rectCenter.x - (textWidth / 2.0f);
+		break;
+	case TEXT_ALIGN_LEFT:
+		textXPos = rect.pos.x;
+		break;
+	case TEXT_ALIGN_RIGHT:
+		textXPos = rect.pos.x + rect.size.x - textWidth;
+		break;
+	default:
+		assert(false);
+		break;
+	}
+
+	return V2(textXPos, rectCenter.y - 0.005f);
+}
+
+void UILabel(const char* text, Rect rect, UITextAlignmentE textAlignment, Color color)
+{
+	Vector2 textPos = GetTextPos(text, rect, textAlignment);
+	PushText01(ui.renderer_p, text, textPos, color);
+}
+
+void UILabel(const char* text, Vector2 pos, UITextAlignmentE textAlignment, Color color)
+{
+	UILabel(text, NewRect(pos, VECTOR2_ZERO), textAlignment, color);
+}
+
 bool UIButton(const char* text, Rect rect, UITextAlignmentE textAlignment)
 {
 	assert(ui.activeLayoutId != S64_MAX);
@@ -192,35 +227,16 @@ bool UIButton(const char* text, Rect rect, UITextAlignmentE textAlignment)
 		layout_p->highlightedButtonIdx = buttonIdx;
 	}
 
-	Vector2 rectCenter = GetRectCenter(rect);
-	float textWidth = ScreenSizeToSize01(V2(GetTextWidth(ui.renderer_p, text), 0)).x;
-	float textXPos = 0;
-	switch (textAlignment)
-	{
-	case TEXT_ALIGN_CENTER:
-		textXPos = rectCenter.x - (textWidth / 2.0f);
-		break;
-	case TEXT_ALIGN_LEFT:
-		textXPos = rect.pos.x;
-		break;
-	case TEXT_ALIGN_RIGHT:
-		textXPos = rect.pos.x + rect.size.x - textWidth;
-		break;
-	default:
-		assert(false);
-		break;
-	}
-
 	if (layout_p->highlightedButtonIdx == buttonIdx)
 	{
 		PushUiRect01(ui.renderer_p, rect, COLOR_BLUE);
-		PushText01(ui.renderer_p, text, V2(textXPos, rectCenter.y - 0.005f), COLOR_WHITE);
+		UILabel(text, rect, textAlignment, COLOR_WHITE);
 		if (layout_p->highlightedButtonConfirm) return true;
 	}
 	else
 	{
 		PushUiRect01(ui.renderer_p, rect, Col(0.804f, 0.667f, 1.0f));
-		PushText01(ui.renderer_p, text, V2(textXPos, rectCenter.y - 0.005f), COLOR_BLACK);
+		UILabel(text, rect, textAlignment, COLOR_BLACK);
 	}
 
 	// If this is the last button, reset the activeLayoutId to make sure other buttons are part of another layout.

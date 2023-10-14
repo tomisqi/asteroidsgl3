@@ -21,4 +21,7 @@ void UILayout(const char* name);
 
 void UITextInput(Rect rect, char* textBuf);
 
+void UILabel(const char* text, Rect rect, UITextAlignmentE textAlignment = TEXT_ALIGN_CENTER, Color color = COLOR_WHITE);
+void UILabel(const char* text, Vector2 pos, UITextAlignmentE textAlignment = TEXT_ALIGN_CENTER, Color color = COLOR_WHITE);
+
 void UICharCallback(unsigned int codepoint);

@@ -952,9 +952,13 @@ GAMEUPDATE_END:
 	}
 
 	char buf[32] = { 0 }; sprintf(buf, "Score: %d", score);
-	PushText01(renderer_p, buf, V2(0.01f, 0.03f), COLOR_WHITE);
+	UILabel(buf, V2(0.01f, 0.03f), TEXT_ALIGN_LEFT);
 	sprintf(buf, "Remaining: %d", asteroidsRemaining);
-	PushText01(renderer_p, buf, V2(0.01f, 0.01f), COLOR_WHITE);
+	UILabel(buf, V2(0.01f, 0.01f), TEXT_ALIGN_LEFT);
+
+	sprintf(buf, "Health: %d", 100);
+	UILabel(buf, V2(0.99f, 0.01f), TEXT_ALIGN_RIGHT);
+
 
 	if (paused) paused = PausedMenu();
 
@@ -1019,7 +1023,7 @@ static void Settings()
 {
 	UILayout("Settings");
 	{
-		if (UIButton("Go Back", NewRect(V2(0.4f, 0.5f), V2(0.2f, 0.05f))) || GameInput_ButtonDown(BUTTON_ESC))
+		if (UIButton("Go Back", NewRect(V2(0.4f, 0.5f), V2(0.2f, 0.05f)), TEXT_ALIGN_LEFT) || GameInput_ButtonDown(BUTTON_ESC))
 		{
 			printf("Go Back\n");
 			mainMenuScreen = MENU_MAIN;

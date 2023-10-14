@@ -31,7 +31,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-Vector2 ScreenDim = V2(1000, 1000);
+Vector2 ScreenDim = V2(900, 900);
 
 static void GlfwErrorCallback(int error, const char* description)
 {
