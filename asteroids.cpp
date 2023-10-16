@@ -23,6 +23,7 @@
 #define MAX_ASTEROIDS          100
 #define INVISIBILITY_DURATION  1
 #define TAKINGDAMAGE_DURATION  1
+#define SHIP_DEATH_DURATION    3
 #define ASTEROID_ROT_SPEED_MIN 10
 #define ASTEROID_ROT_SPEED_MAX 20
 #define ASTEROID_SIZE_MIN      80
@@ -72,6 +73,7 @@ struct Entity
 	double tEnabled;
 	double tInvisibility;
 	double tTakingDamage;
+	double tRespawn;
 	float size;
 	Vector2 pos;
 	Vector2 facingV;
@@ -155,6 +157,7 @@ static ParticleSystem psDebris;
 static AnimationObject explosionCharged;
 static int explosionsSmallIdx;
 static AnimationObject explosionsSmall[MAX_EXPLOSIONS_SMALL];
+static AnimationObject explosionShip;
 
 static bool PausedMenu();
 
@@ -346,6 +349,11 @@ static void GameStart()
 		psExhaust.particles_p[i].color = COLOR_EXHAUST;
 	}
 
+	memset(&explosionShip, 0, sizeof(explosionShip));
+	explosionShip.enabled = false;
+	explosionShip.textureHandle = TEXTURE_EXPLOSIONBIG;
+	explosionShip.animation = AnimationBuild(5, 2, 10, 24.0f, false);
+
 	memset(&explosionCharged, 0, sizeof(explosionCharged));
 	explosionCharged.enabled = false;
 	explosionCharged.textureHandle = TEXTURE_EXPLOSION5;
@@ -526,7 +534,12 @@ static void EntityEntityCollisions(CollisionEntities* collisions_p)
 					ship_p->health = Clampf(ship_p->health, 0, 100.0f);
 					if (ship_p->health == 0)
 					{
-						GameStart();
+						explosionShip.enabled = true;
+						explosionShip.pos = ship_p->pos;
+						explosionShip.animation.tStart = time;
+
+						ship_p->enabled = false;
+						ship_p->tRespawn = time + SHIP_DEATH_DURATION;
 					}
 
 
@@ -667,55 +680,58 @@ static void Game(float deltaT, Renderer* renderer_p)
 	
 	ship.facingV = Normalize(mouse.pos - ship.pos);
 	
-	if (GameInput_Button(BUTTON_W))
+	if (ship.enabled)
 	{
-		shipAcceleration = SHIP_ACCELERATION;
-		if (GameInput_Button(BUTTON_LSHIFT)) shipAcceleration = SHIP_BOOST;
-		shipAccelerationV = ship.facingV;
-	}
-	if (GameInput_Button(BUTTON_S) && Magnitude(ship.vel) > 0.1f)
-	{
-		shipAcceleration = -2*SHIP_BOOST;
-		shipAccelerationV = Normalize(ship.vel);
-	}
-	if (GameInput_Button(BUTTON_A))
-	{
-		shipAcceleration = SHIP_ACCELERATION;
-		Vector2 leftFacingV = RotateDeg(ship.facingV, 90);
-		shipAccelerationV = leftFacingV;
-	}
-	if (GameInput_Button(BUTTON_D))
-	{
-		shipAcceleration = SHIP_ACCELERATION;
-		Vector2 rightFacingV = RotateDeg(ship.facingV, -90);
-		shipAccelerationV = rightFacingV;
+		if (GameInput_Button(BUTTON_W))
+		{
+			shipAcceleration = SHIP_ACCELERATION;
+			if (GameInput_Button(BUTTON_LSHIFT)) shipAcceleration = SHIP_BOOST;
+			shipAccelerationV = ship.facingV;
+		}
+		if (GameInput_Button(BUTTON_S) && Magnitude(ship.vel) > 0.1f)
+		{
+			shipAcceleration = -2 * SHIP_BOOST;
+			shipAccelerationV = Normalize(ship.vel);
+		}
+		if (GameInput_Button(BUTTON_A))
+		{
+			shipAcceleration = SHIP_ACCELERATION;
+			Vector2 leftFacingV = RotateDeg(ship.facingV, 90);
+			shipAccelerationV = leftFacingV;
+		}
+		if (GameInput_Button(BUTTON_D))
+		{
+			shipAcceleration = SHIP_ACCELERATION;
+			Vector2 rightFacingV = RotateDeg(ship.facingV, -90);
+			shipAccelerationV = rightFacingV;
+		}
+
+		if (mouse.state == MOUSE_PRESSED || mouse.state == MOUSE_DOUBLECLICK)
+		{
+			Entity* bullet_p = &bullets[(bulletIdx++) % MAX_BULLETS];
+			bullet_p->pos = ship.pos;
+			bullet_p->facingV = ship.facingV;
+			bullet_p->vel = ship.vel + BULLET_SPEED * Normalize(ship.facingV);
+			bullet_p->enabled = true;
+			bullet_p->tEnabled = time;
+		}
+
+		if ((mouse.state == MOUSE_PRESSED_HOLD) && (GetMouseHoldTime(mouse) > 0.5f) && !chargedBulletHolding_p)
+		{
+			Entity* bullet_p = &chargedBullets[(chargedBulletIdx++) % MAX_CHARGEDBULLETS];
+			bullet_p->pos = ship.pos + 20.0f * ship.facingV;
+			bullet_p->facingV = ship.facingV;
+			bullet_p->vel = VECTOR2_ZERO;
+			bullet_p->enabled = true;
+			bullet_p->tEnabled = time;
+			chargedBulletHolding_p = bullet_p;
+		}
 	}
 
 	ship.vel += shipAcceleration * deltaT * Normalize(shipAccelerationV);
 	if (shipAcceleration == 0.0f)
 	{
 		ship.vel = 0.97f * ship.vel;
-	}
-
-	if (mouse.state == MOUSE_PRESSED || mouse.state == MOUSE_DOUBLECLICK)
-	{
-		Entity* bullet_p = &bullets[(bulletIdx++) % MAX_BULLETS];
-		bullet_p->pos = ship.pos;
-		bullet_p->facingV = ship.facingV;
-		bullet_p->vel = ship.vel + BULLET_SPEED * Normalize(ship.facingV);
-		bullet_p->enabled = true;
-		bullet_p->tEnabled = time;
-	}
-
-	if ((mouse.state == MOUSE_PRESSED_HOLD) && (GetMouseHoldTime(mouse) > 0.5f) && !chargedBulletHolding_p)
-	{
-		Entity* bullet_p = &chargedBullets[(chargedBulletIdx++) % MAX_CHARGEDBULLETS];
-		bullet_p->pos = ship.pos + 20.0f * ship.facingV;
-		bullet_p->facingV = ship.facingV;
-		bullet_p->vel = VECTOR2_ZERO;
-		bullet_p->enabled = true;		
-		bullet_p->tEnabled = time;
-		chargedBulletHolding_p = bullet_p;
 	}
 
 	if (chargedBulletHolding_p)
@@ -754,7 +770,7 @@ static void Game(float deltaT, Renderer* renderer_p)
 	}
 
 	ship.pos += deltaT * ship.vel;
-	if (time > ship.tInvisibility) AddToCollisions(&entityCollisions, &ship);
+	if (ship.enabled && (time > ship.tInvisibility)) AddToCollisions(&entityCollisions, &ship);
 	//PushVector(renderer_p, ship.pos + 50.0f * Normalize(asteroid.pos - ship.pos), 20.0f*Normalize(asteroid.pos - ship.pos));
 
 	for (int i = 0; i < MAX_BULLETS; i++)
@@ -837,6 +853,11 @@ static void Game(float deltaT, Renderer* renderer_p)
 		explosionCharged.enabled = !AnimationUpdate(&explosionCharged.animation, time);
 	}
 
+	if (explosionShip.enabled)
+	{
+		explosionShip.enabled = !AnimationUpdate(&explosionShip.animation, time);
+	}
+
 	for (int i = 0; i < MAX_EXPLOSIONS_SMALL; i++)
 	{
 		AnimationObject* explosionSmall_p = &explosionsSmall[i];
@@ -844,6 +865,16 @@ static void Game(float deltaT, Renderer* renderer_p)
 		{
 			explosionSmall_p->enabled = !AnimationUpdate(&explosionSmall_p->animation, time);
 		}
+	}
+
+	if (!ship.enabled && time >= ship.tRespawn)
+	{
+		ship.enabled = true;
+		ship.facingV = VECTOR2_UP;
+		ship.pos = VECTOR2_ZERO;
+		ship.tEnabled = time;
+		ship.tInvisibility = time + INVISIBILITY_DURATION;
+		ship.health = 100.0f;
 	}
 
 	EntityEntityCollisions(&entityCollisions);
@@ -949,6 +980,11 @@ GAMEUPDATE_END:
 	if (explosionCharged.enabled)
 	{
 		PushSprite(renderer_p, explosionCharged.pos, 200.0f * VECTOR2_ONE, VECTOR2_UP, explosionCharged.textureHandle, Col(0.537f, 0.902f, 1.0f), AnimationGetCurrentUv(&explosionCharged.animation));
+	}
+
+	if (explosionShip.enabled)
+	{
+		PushSprite(renderer_p, explosionShip.pos, 200.0f * VECTOR2_ONE, VECTOR2_UP, explosionShip.textureHandle, COLOR_WHITE, AnimationGetCurrentUv(&explosionShip.animation));
 	}
 
 	for (int i = 0; i < MAX_EXPLOSIONS_SMALL; i++)
