@@ -159,6 +159,11 @@ void UILabel(const char* text, Vector2 pos, UITextAlignmentE textAlignment, Colo
 	UILabel(text, NewRect(pos, VECTOR2_ZERO), textAlignment, color);
 }
 
+void UIRect(Rect rect, Color color)
+{
+	PushUiRect01(ui.renderer_p, rect, color);
+}
+
 bool UIButton(const char* text, Rect rect, UITextAlignmentE textAlignment)
 {	
 	Mouse mouse = GetUiMouse();
@@ -166,13 +171,13 @@ bool UIButton(const char* text, Rect rect, UITextAlignmentE textAlignment)
 
 	if (RectContains(rect, mouse.pos) || (ui.buttonActive == thisButton))
 	{
-		PushUiRect01(ui.renderer_p, rect, COLOR_BLUE);
+		UIRect(rect, COLOR_BLUE);
 		UILabel(text, rect, textAlignment, COLOR_WHITE);
 		if (mouse.state == MOUSE_PRESSED || GameInput_ButtonDown(BUTTON_ENTER)) return true;
 	}
 	else
 	{
-		PushUiRect01(ui.renderer_p, rect, Col(0.804f, 0.667f, 1.0f));
+		UIRect(rect, Col(0.804f, 0.667f, 1.0f));
 		UILabel(text, rect, textAlignment, COLOR_BLACK);
 	}
 

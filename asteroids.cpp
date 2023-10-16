@@ -78,6 +78,7 @@ struct Entity
 	Vector2 vel;
 	float rotSpeed;
 	float colliderRadius;
+	float health;
 
 	TextureHandleT textureHandle;
 	Rect uv;
@@ -270,6 +271,7 @@ static void GameStart()
 	ship.tInvisibility = time + INVISIBILITY_DURATION;
 	ship.textureHandle = TEXTURE_SPACECRAFT;
 	ship.uv = RECT_ONE;
+	ship.health = 100.0f;
 
 	memset(&bullets, 0, sizeof(bullets));
 	for (int i = 0; i < MAX_BULLETS; i++)
@@ -520,6 +522,13 @@ static void EntityEntityCollisions(CollisionEntities* collisions_p)
 					}
 
 					ship_p->tTakingDamage = time + TAKINGDAMAGE_DURATION;
+					ship_p->health -= 20.0f;
+					ship_p->health = Clampf(ship_p->health, 0, 100.0f);
+					if (ship_p->health == 0)
+					{
+						GameStart();
+					}
+
 
 					EllasticCollision(ship_p, asteroid_p);
 				}
@@ -956,9 +965,11 @@ GAMEUPDATE_END:
 	sprintf(buf, "Remaining: %d", asteroidsRemaining);
 	UILabel(buf, V2(0.01f, 0.01f), TEXT_ALIGN_LEFT);
 
-	sprintf(buf, "Health: %d", 100);
-	UILabel(buf, V2(0.99f, 0.01f), TEXT_ALIGN_RIGHT);
-
+	sprintf(buf, "Health: %d", (int)ship.health);
+	UILabel(buf, V2(0.79f, 0.02f), TEXT_ALIGN_RIGHT);
+	float healthBarWidth = 0.1880f * (ship.health / 100.0f);
+	UIRect(NewRect(V2(0.8f, 0.010f), V2(0.19f, 0.02f)), COLOR_WHITE);
+	UIRect(NewRect(V2(0.801f, 0.011f), V2(healthBarWidth, 0.018f)), Col(0.19f, 0.49f, 0.25f, 1.0f));
 
 	if (paused) paused = PausedMenu();
 
@@ -971,24 +982,21 @@ GAMEUPDATE_END:
 static bool PausedMenu()
 {
 	bool paused = true;
+	if (UIButton("Continue", NewRect(V2(0.35f, 0.6f), V2(0.3f, 0.05f))))
 	{
-		if (UIButton("Continue", NewRect(V2(0.35f, 0.6f), V2(0.3f, 0.05f))))
-		{
-			printf("Continue\n");
-			printf("Continue\n");
-			paused = false;
-		}
-		if (UIButton("Restart", NewRect(V2(0.35f, 0.5f), V2(0.3f, 0.05f))))
-		{
-			printf("Restart\n");
-			paused = false;
-			GameStart();
-		}
-		if (UIButton("Main Menu", NewRect(V2(0.35f, 0.4f), V2(0.3f, 0.05f))))
-		{
-			printf("Main Menu\n");
-			scene = SCENE_MAIN_MENU;
-		}
+		printf("Continue\n");
+		paused = false;
+	}
+	if (UIButton("Restart", NewRect(V2(0.35f, 0.5f), V2(0.3f, 0.05f))))
+	{
+		printf("Restart\n");
+		paused = false;
+		GameStart();
+	}
+	if (UIButton("Main Menu", NewRect(V2(0.35f, 0.4f), V2(0.3f, 0.05f))))
+	{
+		printf("Main Menu\n");
+		scene = SCENE_MAIN_MENU;
 	}
 	return paused;
 }
