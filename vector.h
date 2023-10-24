@@ -205,16 +205,32 @@ static inline float AngleDeg(Vector2 v1, Vector2 v2)
 
 static inline float AngleRadRel(Vector2 v1, Vector2 v2)
 {
-	// What rotation does v1 need to undergo to get to v2?
-	// > 0 if counter-clockwise and < 0 if clockwise
 	float angle = AngleRad(v1, v2);
-	if (AngleRad(RotateRad(v1, -angle), v2) < 0.01f) return -angle;
+	Vector2 v190 = RotateRad(v1, PI / 2);
+	if (AngleRad(v190, v2) > (PI / 2)) return -angle;
 	return angle;
 }
 
 static inline float AngleDegRel(Vector2 v1, Vector2 v2)
 {
+	// What rotation does v1 need to undergo to get to v2?
+    // > 0 if counter-clockwise and < 0 if clockwise
+    // Range: {0 .. +180} if counter-clockwise
+    //        {0 .. -180} if clockwise
 	return RadToDeg(AngleRadRel(v1, v2));
+}
+
+static inline float AngleRad360(Vector2 v1, Vector2 v2)
+{
+	float angle = AngleRad(v1, v2);
+	if (AngleRadRel(v1, v2) < 0) angle = 2*PI-angle;
+	return angle;
+}
+
+static inline float AngleDeg360(Vector2 v1, Vector2 v2)
+{
+	// Range: {0 .. +360}  (counter-clockwise)
+	return RadToDeg(AngleRad360(v1, v2));
 }
 
 static inline float Det(Vector2 v1, Vector2 v2)
