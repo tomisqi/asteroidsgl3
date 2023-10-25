@@ -96,7 +96,7 @@ bool Test(Renderer* renderer_p, float deltaT)
 	static Vector2 aimP = VECTOR2_ZERO;
 	if (mouse.state == MOUSE_PRESSED_HOLD && (aimP == VECTOR2_ZERO))
 	{
-		aimP = mouse.pos;		
+		aimP = mouse.pos;
 	}
 	if (mouse.state == MOUSE_RELEASED && aimP != VECTOR2_ZERO)
 	{
@@ -110,11 +110,20 @@ bool Test(Renderer* renderer_p, float deltaT)
 	if (aimP != VECTOR2_ZERO)
 	{
 		PushVector(renderer_p, aimP, mouse.pos - aimP);
+
+		float angle = AngleDeg360(VECTOR2_UP, Normalize(mouse.pos - aimP));
+		//printf("%.02f\n", angle);
+
+		char buf[32] = { 0 }; sprintf(buf, "angle: %.2f", angle);
+		UILabel(buf, 0.5f * VECTOR2_ONE);
+
 	}
 
 
 	player.pos += deltaT * player.vel;
 	player2.pos += deltaT * player2.vel;
+
+
 
 	// Players
 	//PushCircle(renderer_p, player.pos, player.size/2, COLOR_GREEN, 64);
@@ -127,11 +136,6 @@ bool Test(Renderer* renderer_p, float deltaT)
 	//PushXCross(renderer_p, collisionP, COLOR_CYAN);
 
 	CheckCollision(&player, &player2);
-
-	if (UIButton("1234567890987654321", NewRect(V2(0.25f, 0.5f), V2(0.5f, 0.05f)), TEXT_ALIGN_CENTER))
-	{
-		printf("Click!\n");
-	}
 
 	//static char bufx[32] = { 0 }; static char bufy[32] = { 0 };
 	//UITextInput(NewRect(V2(-380, 350), V2(200, 25)), bufx);

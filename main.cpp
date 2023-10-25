@@ -121,6 +121,7 @@ int main(void)
 	textures[TEXTURE_EXPLOSIONBIG] = LoadTexture("../assets/textures/ExplosionBig.png");
 	textures[TEXTURE_EXPLOSION5] = LoadTexture("../assets/textures/Explosion5.png");
 	textures[TEXTURE_EXPLOSIONSMALL] = LoadTexture("../assets/textures/ExplosionTiny.png");
+	textures[TEXTURE_TURRET] = LoadTexture("../assets/textures/turret.png");
 
 	OpenGL openGl;
 	OpenGLInit(&openGl);

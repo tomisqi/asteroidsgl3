@@ -41,6 +41,7 @@
 #define COLOR_EXHAUST          Col(0.6f, 0.8f, 1.0f, 1.0f);
 #define COLOR_EXHAUST_BOOST    Col(0.957f, 1.0f, 0.475f, 1.0f);
 #define MAX_EXPLOSIONS_SMALL   16
+#define MAX_TURRETS            2
 
 enum SceneE : U8
 {
@@ -57,6 +58,7 @@ enum EntityTypeE : U32
 	ENTITY_ASTEROID        = 1 << 3,
 	ENTITY_ENEMYBULLET     = 1 << 4,
 	ENTITY_CHARGEDBULLET   = 1 << 5,
+	ENTITY_TURRET    = 1 << 6,
 };
 
 enum MenuScreenE: U8
@@ -66,6 +68,13 @@ enum MenuScreenE: U8
 	MENU_SETTINGS,
 };
 
+struct Turret
+{
+	double tNextMove;
+	int nextAngle;
+	int prevAngle;
+};
+
 struct Entity
 {
 	EntityTypeE type;
@@ -73,7 +82,6 @@ struct Entity
 	double tEnabled;
 	double tInvisibility;
 	double tTakingDamage;
-	double tRespawn;
 	float size;
 	Vector2 pos;
 	Vector2 facingV;
@@ -81,6 +89,20 @@ struct Entity
 	float rotSpeed;
 	float colliderRadius;
 	float health;
+
+	union
+	{
+		struct
+		{ // Turret
+			double tNextMove;
+			int nextAngle;
+			int prevAngle;
+		};
+		struct
+		{ // Spaceship
+			double tRespawn;
+		};
+	} e;
 
 	TextureHandleT textureHandle;
 	Rect uv;
@@ -142,6 +164,7 @@ static Entity asteroids[MAX_ASTEROIDS];
 static CollisionEntities entityCollisions;
 static int bulletIdx;
 static Entity bullets[MAX_BULLETS];
+static int enemyBulletIdx;
 static Entity enemyBullets[MAX_BULLETS];
 static int chargedBulletIdx;
 static Entity chargedBullets[MAX_CHARGEDBULLETS];
@@ -158,6 +181,7 @@ static AnimationObject explosionCharged;
 static int explosionsSmallIdx;
 static AnimationObject explosionsSmall[MAX_EXPLOSIONS_SMALL];
 static AnimationObject explosionShip;
+static Entity turrets[MAX_TURRETS];
 
 static bool PausedMenu();
 
@@ -261,7 +285,7 @@ static void GameStart()
 	BuildSolid(&solid);
 
 	level.level = 1;
-	level.asteroidsCount = 75;
+	level.asteroidsCount = 5;
 	asteroidsRemaining = level.asteroidsCount;
 
 	memset(&ship, 0, sizeof(ship));
@@ -321,6 +345,26 @@ static void GameStart()
 		asteroids[i].pos = FindRandomPositionForAsteroid(asteroids[i].colliderRadius);
 		asteroids[i].vel = GetRandomValue(ASTEROID_SPEED_MIN, ASTEROID_SPEED_MAX) * RotateDeg(VECTOR2_UP, GetRandomValue(0, 360));
 	}
+
+	memset(turrets, 0, sizeof(turrets));
+	for (int i = 0; i < MAX_TURRETS; i++)
+	{
+		turrets[i].type = ENTITY_TURRET;
+		turrets[i].size = 150.0f;
+		turrets[i].colliderRadius = turrets[i].size / 2;
+		turrets[i].facingV = VECTOR2_UP;
+		turrets[i].uv = RECT_ONE;
+		turrets[i].pos = V2(700.0f, -700.0f);
+		turrets[i].health = 100.0f;
+		turrets[i].textureHandle = TEXTURE_TURRET;
+		turrets[i].rotSpeed = 180.0f;
+		turrets[i].e.tNextMove = F32_MAX;
+		turrets[i].e.nextAngle = 45;
+		turrets[i].e.prevAngle = 0;
+	}
+	turrets[0].enabled = true;
+	turrets[0].tEnabled = time;
+	turrets[0].tInvisibility = time + INVISIBILITY_DURATION;
 
 	memset(chargedBullets, 0, sizeof(chargedBullets));
 	for (int i = 0; i < MAX_CHARGEDBULLETS; i++)
@@ -539,7 +583,7 @@ static void EntityEntityCollisions(CollisionEntities* collisions_p)
 						explosionShip.animation.tStart = time;
 
 						ship_p->enabled = false;
-						ship_p->tRespawn = time + SHIP_DEATH_DURATION;
+						ship_p->e.tRespawn = time + SHIP_DEATH_DURATION;
 					}
 
 
@@ -548,14 +592,34 @@ static void EntityEntityCollisions(CollisionEntities* collisions_p)
 				break;
 				case ENTITY_PLAYERSPACESHIP | ENTITY_ENEMYBULLET:
 				{
-					Entity* ship_p = entityA_p->type == ENTITY_PLAYERSPACESHIP ? entityA_p : entityB_p;
-					ship_p->pos = VECTOR2_ZERO;
-					ship_p->vel = VECTOR2_ZERO;
-					ship_p->facingV = VECTOR2_UP;
-					ship_p->tEnabled = time;
-					ship_p->tInvisibility = time + INVISIBILITY_DURATION;
+					Entity* bullet_p = entityA_p;
+					Entity* ship_p = entityB_p;
+					if (entityA_p->type == ENTITY_PLAYERSPACESHIP)
+					{
+						bullet_p = entityB_p;
+						ship_p = entityA_p;
+					}
 
-					score--;
+					SpawnDebrisParticles(bullet_p->pos, 5);
+
+					bullet_p->enabled = false;
+					AnimationObject* explosionSmall_p = &explosionsSmall[(explosionsSmallIdx++) % MAX_EXPLOSIONS_SMALL];
+					explosionSmall_p->enabled = true;
+					explosionSmall_p->pos = bullet_p->pos + bullet_p->colliderRadius * Normalize(ship_p->pos - bullet_p->pos);
+					explosionSmall_p->animation.tStart = time;
+
+					ship_p->tTakingDamage = time + TAKINGDAMAGE_DURATION;
+					ship_p->health -= 20.0f;
+					ship_p->health = Clampf(ship_p->health, 0, 100.0f);
+					if (ship_p->health == 0)
+					{
+						explosionShip.enabled = true;
+						explosionShip.pos = ship_p->pos;
+						explosionShip.animation.tStart = time;
+
+						ship_p->enabled = false;
+						ship_p->e.tRespawn = time + SHIP_DEATH_DURATION;
+					}
 				}
 				break;
 				case ENTITY_ASTEROID | ENTITY_ASTEROID:
@@ -566,6 +630,85 @@ static void EntityEntityCollisions(CollisionEntities* collisions_p)
 					Vector2 collisionP = asteroidA_p->pos + (asteroidA_p->size / 2) * Normalize(asteroidB_p->pos - asteroidA_p->pos);
 					SpawnDebrisParticles(collisionP, 5);
 					EllasticCollision(asteroidA_p, asteroidB_p);
+				}
+				break;
+				case ENTITY_TURRET | ENTITY_BULLET:
+				{
+					Entity* bullet_p = entityA_p;
+					Entity* turret_p = entityB_p;
+					if (entityA_p->type == ENTITY_TURRET)
+					{
+						bullet_p = entityB_p;
+						turret_p = entityA_p;
+					}
+
+					turret_p->health -= 25.0f;
+					turret_p->health = Clampf(turret_p->health, 0, 100.0f);
+					if (turret_p->health == 0)
+					{
+						explosionShip.enabled = true;
+						explosionShip.pos = turret_p->pos;
+						explosionShip.animation.tStart = time;
+						turret_p->enabled = false;
+					}
+
+					bullet_p->enabled = false;
+					AnimationObject* explosionSmall_p = &explosionsSmall[(explosionsSmallIdx++) % MAX_EXPLOSIONS_SMALL];
+					explosionSmall_p->enabled = true;
+					explosionSmall_p->pos = bullet_p->pos + bullet_p->colliderRadius * Normalize(turret_p->pos - bullet_p->pos);
+					explosionSmall_p->animation.tStart = time;
+
+					score++;
+
+				}
+				break;
+				case ENTITY_TURRET | ENTITY_CHARGEDBULLET:
+				{
+					Entity* chargedBullet_p = entityA_p;
+					Entity* turret_p = entityB_p;
+					if (entityA_p->type == ENTITY_TURRET)
+					{
+						chargedBullet_p = entityB_p;
+						turret_p = entityA_p;
+					}
+
+					turret_p->health = 0;
+					turret_p->enabled = false;
+					explosionShip.enabled = true;
+					explosionShip.pos = turret_p->pos;
+					explosionShip.animation.tStart = time;
+
+					chargedBullet_p->enabled = false;
+					explosionCharged.enabled = true;
+					explosionCharged.pos = chargedBullet_p->pos;
+					explosionCharged.animation.tStart = time;
+
+					score++;
+				}
+				break;
+				case ENTITY_TURRET | ENTITY_PLAYERSPACESHIP:
+				{
+					Entity* turret_p = entityA_p;
+					Entity* ship_p = entityB_p;
+					if (entityA_p->type == ENTITY_PLAYERSPACESHIP)
+					{
+						turret_p = entityB_p;
+						ship_p = entityA_p;
+					}
+
+					ship_p->tInvisibility = time + INVISIBILITY_DURATION;
+					ship_p->tTakingDamage = time + TAKINGDAMAGE_DURATION;
+					ship_p->health -= 75.0f;
+					ship_p->health = Clampf(ship_p->health, 0, 100.0f);
+					if (ship_p->health == 0)
+					{
+						explosionShip.enabled = true;
+						explosionShip.pos = ship_p->pos;
+						explosionShip.animation.tStart = time;
+
+						ship_p->enabled = false;
+						ship_p->e.tRespawn = time + SHIP_DEATH_DURATION;
+					}
 				}
 				break;
 				default:
@@ -618,10 +761,12 @@ static void EntitySolidCollisions(CollisionEntities* entities_p, float deltaT, S
 				case ENTITY_ENEMYBULLET:
 				{
 					Entity* bullet_p = entity_p;
-					Vector2 normal = GetNormal(solidLine, bullet_p->pos);
-					float angle = AngleDegRel(-bullet_p->vel, normal);
-					bullet_p->vel = RotateDeg(-bullet_p->vel, 2 * angle);
-					bullet_p->facingV = Normalize(bullet_p->vel);
+					bullet_p->enabled = false;
+
+					AnimationObject* explosionSmall_p = &explosionsSmall[(explosionsSmallIdx++) % MAX_EXPLOSIONS_SMALL];
+					explosionSmall_p->enabled = true;
+					explosionSmall_p->pos = p;
+					explosionSmall_p->animation.tStart = time;
 				}
 				break;
 				case ENTITY_PLAYERSPACESHIP:
@@ -789,20 +934,51 @@ static void Game(float deltaT, Renderer* renderer_p)
 		Entity* asteroid_p = &asteroids[i];
 		if (asteroid_p->enabled && (time > asteroid_p->tInvisibility))
 		{
-#if 0
-			if (mouse.state == MOUSE_PRESSED || mouse.state == MOUSE_DOUBLECLICK)
-			{
-				Entity* bullet_p = &enemyBullets[(bulletIdx++) % MAX_BULLETS];
-				bullet_p->pos = asteroid.pos;
-				bullet_p->facingV = Normalize(ship.pos - asteroid.pos);
-				bullet_p->vel = BULLET_SPEED * bullet_p->facingV;
-				bullet_p->enabled = true;
-				bullet_p->tEnabled = time;
-			}
-#endif
 			asteroid_p->facingV = RotateDeg(asteroid_p->facingV, asteroid_p->rotSpeed * deltaT);
 			asteroid_p->pos += deltaT * asteroid_p->vel;
 			AddToCollisions(&entityCollisions, asteroid_p);
+		}
+	}
+
+	for (int i = 0; i < MAX_TURRETS; i++)
+	{
+		Entity* turret_p = &turrets[i];
+		if (turret_p->enabled && (time > turret_p->tInvisibility))
+		{
+			int nextAngle = turret_p->e.nextAngle;
+			int prevAngle = turret_p->e.prevAngle;
+			float angle = AngleDeg360(VECTOR2_UP, turret_p->facingV);
+			
+			if (((nextAngle > prevAngle) && (angle >= nextAngle)) || ((nextAngle < prevAngle) && (angle < prevAngle && angle >= nextAngle)))
+			{
+				turret_p->facingV = RotateDeg(VECTOR2_UP, nextAngle);
+				turret_p->rotSpeed = 0.0f;
+				turret_p->e.tNextMove = time + 1.0f;
+				turret_p->e.prevAngle = turret_p->e.nextAngle;
+				turret_p->e.nextAngle = (turret_p->e.nextAngle + 45) % 360;
+
+				Vector2 facingV = turret_p->facingV;
+				for (size_t i = 0; i < 4; i++)
+				{
+					Entity* bullet_p = &enemyBullets[(enemyBulletIdx++) % MAX_BULLETS];
+					bullet_p->pos = turret_p->pos;
+					bullet_p->vel = BULLET_SPEED * facingV;
+					bullet_p->facingV = facingV;
+					bullet_p->enabled = true;
+					bullet_p->tEnabled = time;
+
+					facingV = RotateDeg(facingV, 90);
+				}				
+			}
+
+			if (time >= turret_p->e.tNextMove)
+			{
+				turret_p->rotSpeed = 180.0f;
+			}
+
+			turret_p->facingV = RotateDeg(turret_p->facingV, turret_p->rotSpeed * deltaT);
+
+			AddToCollisions(&entityCollisions, turret_p);
 		}
 	}
 
@@ -867,7 +1043,7 @@ static void Game(float deltaT, Renderer* renderer_p)
 		}
 	}
 
-	if (!ship.enabled && time >= ship.tRespawn)
+	if (!ship.enabled && time >= ship.e.tRespawn)
 	{
 		ship.enabled = true;
 		ship.facingV = VECTOR2_UP;
@@ -974,6 +1150,18 @@ GAMEUPDATE_END:
 			if (time < asteroid_p->tInvisibility) color.a = Blink(ship.tEnabled) ? 1.0f : 0.0f;
 			PushSprite(renderer_p, asteroid_p->pos, asteroid_p->size * VECTOR2_ONE, asteroid_p->facingV, asteroid_p->textureHandle, color, asteroid_p->uv);
 			//PushCircle(renderer_p, asteroid_p->pos, asteroid_p->colliderRadius, COLOR_GREEN);
+		}
+	}
+
+	for (int i = 0; i < MAX_TURRETS; i++)
+	{
+		Entity* turret_p = &turrets[i];
+		if (turret_p->enabled)
+		{
+			Color color = COLOR_WHITE;
+			if (time < turret_p->tInvisibility) color.a = Blink(turret_p->tEnabled) ? 1.0f : 0.0f;
+			PushSprite(renderer_p, turret_p->pos, turret_p->size * VECTOR2_ONE, turret_p->facingV, turret_p->textureHandle, color, turret_p->uv);
+			//PushCircle(renderer_p, turret_p->pos, turret_p->colliderRadius, COLOR_GREEN);
 		}
 	}
 

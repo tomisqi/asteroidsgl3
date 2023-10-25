@@ -10,7 +10,8 @@
 #define TEXTURE_EXPLOSIONBIG   6
 #define TEXTURE_EXPLOSION5     7
 #define TEXTURE_EXPLOSIONSMALL 8
-#define TEXTURES_COUNT         9
+#define TEXTURE_TURRET         9
+#define TEXTURES_COUNT         10
 
 struct Texture
 {
