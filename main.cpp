@@ -31,6 +31,14 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+enum DbgPausedStateE
+{
+	DBG_PAUSED_NONE,
+	DBG_PAUSED_FRAME,      // The frame where we paused
+	DBG_PAUSED_FRAMEPLUS1, // The next frame after pausing
+	DBG_PAUSED_PAUSED,     // Completely paused
+};
+
 Vector2 ScreenDim = V2(900, 900);
 
 static void GlfwErrorCallback(int error, const char* description)
@@ -66,6 +74,8 @@ static void BindButtons()
 	GameInput_BindButton(BUTTON_DEL, GLFW_KEY_DELETE);
 	GameInput_BindButton(BUTTON_END, GLFW_KEY_END);
 	GameInput_BindButton(BUTTON_LCTRL, GLFW_KEY_LEFT_CONTROL);
+	GameInput_BindButton(BUTTON_F10, GLFW_KEY_F10);
+	GameInput_BindButton(BUTTON_F11, GLFW_KEY_F11);
 }
 
 static float GetDeltaT()
@@ -137,6 +147,9 @@ int main(void)
 
 	UIInit(&renderer);
 	GameInit();
+
+	U64 frameCnt = 0;
+	DbgPausedStateE dbgPausedState = DBG_PAUSED_NONE;
 	while (!glfwWindowShouldClose(window))
 	{
 	  for (int i = 0; i < MAX_BUTTONS; i++)
@@ -147,18 +160,38 @@ int main(void)
 	  double mouseXpos, mouseYpos;
 	  glfwGetCursorPos(window, &mouseXpos, &mouseYpos);
 	  GameInput_NewFrame(buttonStates, glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS, V2(mouseXpos, mouseYpos), ScreenDim, GetDeltaT());
-
 	  UINewFrame(GetDeltaT(), ScreenDim);
 
-	  bool quit = GameUpdateAndRender(GetDeltaT(), &renderer);
-	  //bool quit = Test(&renderer, GetDeltaT());
+	  if (GameInput_ButtonDown(BUTTON_F10)) 
+	  { 
+		  if (dbgPausedState == DBG_PAUSED_NONE)   dbgPausedState = DBG_PAUSED_FRAME;
+		  if (dbgPausedState == DBG_PAUSED_PAUSED) dbgPausedState = DBG_PAUSED_NONE;
+	  }
+	  if (GameInput_ButtonDown(BUTTON_F11)) 
+	  { 
+		  dbgPausedState = DBG_PAUSED_FRAME;
+	  }	  	  
 
+	  bool quit = false;
+	  bool gameUpdate =    (dbgPausedState == DBG_PAUSED_NONE) || (dbgPausedState == DBG_PAUSED_FRAMEPLUS1); // If dbg paused just happened, update the game until next frame since we will clear the renderer first.
+	  bool rendererClear = (dbgPausedState == DBG_PAUSED_NONE) || (dbgPausedState == DBG_PAUSED_FRAME);      // If dbg paused just happened, clear the current frame only and don't clear anymore.
+	  if (gameUpdate)
+	  {
+		  quit = GameUpdateAndRender(GetDeltaT(), &renderer);
+		  //bool quit = Test(&renderer, GetDeltaT());
+	  }
+	  
 	  OpenGLEndFrame(&openGl, &renderer, textures, ScreenDim);
-	  RendererEndFrame(&renderer);
+	  if (rendererClear) RendererEndFrame(&renderer);
 	  glfwSwapBuffers(window);
 	  glfwPollEvents();
 
+	  if      (dbgPausedState == DBG_PAUSED_FRAME)      dbgPausedState = DBG_PAUSED_FRAMEPLUS1;
+	  else if (dbgPausedState == DBG_PAUSED_FRAMEPLUS1) dbgPausedState = DBG_PAUSED_PAUSED;
+
 	  if (quit) break;
+
+	  frameCnt++;
 	}
 
 	//stbi_image_free(data); //@nocommit

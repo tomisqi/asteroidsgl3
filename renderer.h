@@ -75,6 +75,8 @@ struct Renderer
 	TextRendering textRendering;
 };
 
+extern Renderer* rendererGl_p; // Used for debugging.
+
 void RendererInit(Renderer* renderer_p);
 void RendererEndFrame(Renderer* renderer_p);
 void SetSpritesOrtographicProj(Renderer* renderer_p, Rect rect);

@@ -15,4 +15,4 @@ struct OpenGL
 void OpenGLInit(OpenGL* openGL_p);
 GLuint LoadAndCompileShaders(const char* vsPath, const char* fsPath);
 void UseShader(unsigned int shaderId);
-void OpenGLEndFrame(OpenGL* openGl_p, Renderer* renderer_p, Texture textures[], Vector2 screenDim);
+void OpenGLEndFrame(OpenGL* openGl_p, const Renderer* renderer_p, Texture textures[], Vector2 screenDim);

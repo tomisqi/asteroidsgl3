@@ -111,7 +111,7 @@ void OpenGLInit(OpenGL* openGL_p)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
 
-void OpenGLEndFrame(OpenGL* openGl_p, Renderer* renderer_p, Texture textures[], Vector2 screenDim)
+void OpenGLEndFrame(OpenGL* openGl_p, const Renderer* renderer_p, Texture textures[], Vector2 screenDim)
 {
 	//glClearColor(0.0f, 0.0f, 0.1f, 1.0f); 
 	//glClearColor(1.0f, 1.0f, 1.0f, 1.0f);   // White
@@ -123,10 +123,10 @@ void OpenGLEndFrame(OpenGL* openGl_p, Renderer* renderer_p, Texture textures[], 
 
 	for (int i = 0; i < renderer_p->groupCnt; i++)
 	{
-		RenderGroup* rendGrp_p = &renderer_p->renderGroups[i];
+		const RenderGroup* rendGrp_p = &renderer_p->renderGroups[i];
 		UseShader(rendGrp_p->shaderProgram);
 
-		RenderCommands* renderCmds_p = &rendGrp_p->renderCommands;
+		const RenderCommands* renderCmds_p = &rendGrp_p->renderCommands;
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, openGl_p->EBO);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, renderCmds_p->indexCount * sizeof(U32), renderCmds_p->indexArray, GL_DYNAMIC_DRAW);
@@ -217,7 +217,7 @@ void OpenGLEndFrame(OpenGL* openGl_p, Renderer* renderer_p, Texture textures[], 
 			unsigned int transformLoc = glGetUniformLocation(rendGrp_p->shaderProgram, "transform");
 			glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transMatrix));
 
-			Texture* textTexture_p = &renderer_p->textRendering.textTexture;
+			const Texture* textTexture_p = &renderer_p->textRendering.textTexture;
 			int quadCount = renderCmds_p->vertexCount / 4;
 			int indexIndex = 0;
 			for (int quadIndex = 0; quadIndex < quadCount; quadIndex++)
