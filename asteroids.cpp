@@ -42,6 +42,7 @@
 #define COLOR_EXHAUST_BOOST    Col(0.957f, 1.0f, 0.475f, 1.0f);
 #define MAX_EXPLOSIONS_SMALL   16
 #define MAX_TURRETS            2
+#define SPEED_DESTROY          2000.0f
 
 enum SceneE : U8
 {
@@ -354,7 +355,7 @@ static void GameStart()
 		turrets[i].colliderRadius = turrets[i].size / 2;
 		turrets[i].facingV = VECTOR2_UP;
 		turrets[i].uv = RECT_ONE;
-		turrets[i].pos = V2(700.0f, -700.0f);
+		turrets[i].pos = VECTOR2_ZERO;
 		turrets[i].health = 100.0f;
 		turrets[i].textureHandle = TEXTURE_TURRET;
 		turrets[i].rotSpeed = 180.0f;
@@ -365,6 +366,12 @@ static void GameStart()
 	turrets[0].enabled = true;
 	turrets[0].tEnabled = time;
 	turrets[0].tInvisibility = time + INVISIBILITY_DURATION;
+	turrets[0].pos = V2(800.0f, -500.0f);
+	turrets[1].enabled = true;
+	turrets[1].tEnabled = time;
+	turrets[1].tInvisibility = time + INVISIBILITY_DURATION;
+	turrets[1].pos = V2(-600.0f, 800.0f);
+
 
 	memset(chargedBullets, 0, sizeof(chargedBullets));
 	for (int i = 0; i < MAX_CHARGEDBULLETS; i++)
@@ -576,18 +583,14 @@ static void EntityEntityCollisions(CollisionEntities* collisions_p)
 					ship_p->tTakingDamage = time + TAKINGDAMAGE_DURATION;
 					ship_p->health -= 20.0f;
 					ship_p->health = Clampf(ship_p->health, 0, 100.0f);
-					if (ship_p->health == 0)
-					{
-						explosionShip.enabled = true;
-						explosionShip.pos = ship_p->pos;
-						explosionShip.animation.tStart = time;
-
-						ship_p->enabled = false;
-						ship_p->e.tRespawn = time + SHIP_DEATH_DURATION;
-					}
-
 
 					EllasticCollision(ship_p, asteroid_p);
+
+					if (Magnitude(ship_p->vel) >= SPEED_DESTROY)
+					{
+						ship_p->health = 0;
+						ship_p->vel = VECTOR2_ZERO; // Zero so that the camera doesn't continue following.
+					}
 				}
 				break;
 				case ENTITY_PLAYERSPACESHIP | ENTITY_ENEMYBULLET:
@@ -611,15 +614,6 @@ static void EntityEntityCollisions(CollisionEntities* collisions_p)
 					ship_p->tTakingDamage = time + TAKINGDAMAGE_DURATION;
 					ship_p->health -= 20.0f;
 					ship_p->health = Clampf(ship_p->health, 0, 100.0f);
-					if (ship_p->health == 0)
-					{
-						explosionShip.enabled = true;
-						explosionShip.pos = ship_p->pos;
-						explosionShip.animation.tStart = time;
-
-						ship_p->enabled = false;
-						ship_p->e.tRespawn = time + SHIP_DEATH_DURATION;
-					}
 				}
 				break;
 				case ENTITY_ASTEROID | ENTITY_ASTEROID:
@@ -644,11 +638,13 @@ static void EntityEntityCollisions(CollisionEntities* collisions_p)
 
 					turret_p->health -= 25.0f;
 					turret_p->health = Clampf(turret_p->health, 0, 100.0f);
+
 					if (turret_p->health == 0)
 					{
 						explosionShip.enabled = true;
 						explosionShip.pos = turret_p->pos;
 						explosionShip.animation.tStart = time;
+
 						turret_p->enabled = false;
 					}
 
@@ -700,15 +696,6 @@ static void EntityEntityCollisions(CollisionEntities* collisions_p)
 					ship_p->tTakingDamage = time + TAKINGDAMAGE_DURATION;
 					ship_p->health -= 75.0f;
 					ship_p->health = Clampf(ship_p->health, 0, 100.0f);
-					if (ship_p->health == 0)
-					{
-						explosionShip.enabled = true;
-						explosionShip.pos = ship_p->pos;
-						explosionShip.animation.tStart = time;
-
-						ship_p->enabled = false;
-						ship_p->e.tRespawn = time + SHIP_DEATH_DURATION;
-					}
 				}
 				break;
 				default:
@@ -775,6 +762,12 @@ static void EntitySolidCollisions(CollisionEntities* entities_p, float deltaT, S
 					Vector2 normal = GetNormal(solidLine, ship_p->pos);
 					float angle = AngleDegRel(-ship_p->vel, normal);
 					ship_p->vel = RotateDeg(-ship_p->vel, 2 * angle);
+
+					if (Magnitude(ship_p->vel) >= SPEED_DESTROY)
+					{
+						ship_p->health = 0;
+						ship_p->vel = VECTOR2_ZERO; // Zero so that the camera doesn't continue following.
+					}
 				}
 				break;
 				case ENTITY_ASTEROID:
@@ -1053,6 +1046,16 @@ static void Game(float deltaT, Renderer* renderer_p)
 		ship.health = 100.0f;
 	}
 
+	if (ship.health == 0 && ship.enabled)
+	{
+		explosionShip.enabled = true;
+		explosionShip.pos = ship.pos;
+		explosionShip.animation.tStart = time;
+
+		ship.enabled = false;
+		ship.e.tRespawn = time + SHIP_DEATH_DURATION;
+	}
+
 	EntityEntityCollisions(&entityCollisions);
 	EntitySolidCollisions(&entityCollisions, deltaT, &solid);
 
@@ -1194,6 +1197,9 @@ GAMEUPDATE_END:
 	float healthBarWidth = 0.1880f * (ship.health / 100.0f);
 	UIRect(NewRect(V2(0.8f, 0.010f), V2(0.19f, 0.02f)), COLOR_WHITE);
 	UIRect(NewRect(V2(0.801f, 0.011f), V2(healthBarWidth, 0.018f)), Col(0.19f, 0.49f, 0.25f, 1.0f));
+
+	sprintf(buf, "%.2f", Magnitude(ship.vel));
+	UILabel(buf, V2(0.95f, 0.5f), TEXT_ALIGN_RIGHT);
 
 	if (paused) paused = PausedMenu();
 
