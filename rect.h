@@ -24,10 +24,10 @@ static inline Rect NewRectCenterPos(Vector2 centerPos, Vector2 size)
 
 static bool RectContains(Rect rect, Vector2 pos)
 {
-	float xMin = rect.pos.x;
-	float xMax = rect.pos.x + rect.size.x;
-	float yMin = rect.pos.y;
-	float yMax = rect.pos.y + rect.size.y;
+	float xMin = fmin(rect.pos.x, rect.pos.x + rect.size.x);
+	float xMax = fmax(rect.pos.x, rect.pos.x + rect.size.x);
+	float yMin = fmin(rect.pos.y, rect.pos.y + rect.size.y);
+	float yMax = fmax(rect.pos.y, rect.pos.y + rect.size.y);
 
 	return pos.x >= xMin && pos.x <= xMax && pos.y >= yMin && pos.y <= yMax;
 }

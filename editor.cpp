@@ -10,7 +10,8 @@
 #define GRID_SIZE 100
 #define CAM_ZOOM_STEP 100.0f
 #define CAM_INITIAL_SIZE (2.0f * ScreenDim)
-#define MAX_ENTITIES 2
+#define MAX_ENTITIES 3
+
 
 struct Entity
 {
@@ -29,8 +30,9 @@ struct Camera
 static Camera camera;
 static Entity ship;
 static Entity asteroid;
-static Entity* entitiesArr_p[MAX_ENTITIES] = { &ship, &asteroid };
-static int selected = -1;
+static Entity asteroid2;
+static Entity* entitiesArr_p[MAX_ENTITIES + 1] = {nullptr, &ship, &asteroid, &asteroid2 };
+static int selectedIndexes[MAX_ENTITIES] = {0};
 
 static Vector2 MouseToWorldPos(Vector2 mousepos)
 {
@@ -88,8 +90,8 @@ static void CameraPan(Mouse* mouse_p)
 
 static int SelectSingle(Vector2 mousePos)
 {
-	int index = -1;
-	for (int i = 0; i < MAX_ENTITIES; i++)
+	int index = 0;
+	for (int i = 1; i < MAX_ENTITIES + 1; i++)
 	{
 		Entity* entity_p = entitiesArr_p[i];
 		float distSq = MagnitudeSq(mousePos - entity_p->pos);
@@ -102,6 +104,38 @@ static int SelectSingle(Vector2 mousePos)
 	}
 
 	return index;
+}
+
+static void SelectMultiple(Rect selectionRect, int selectedIndexes[])
+{
+	int nextIndex = 0;
+	for (int i = 1; i < MAX_ENTITIES + 1; i++)
+	{
+		Entity* entity_p = entitiesArr_p[i];
+		if (RectContains(selectionRect, entity_p->pos))
+		{ 
+			selectedIndexes[nextIndex++] = i;
+		}
+	}
+}
+
+static Rect SelectionRect(Mouse* mouse_p)
+{
+	static Vector2 mouseStartPos;
+
+	Vector2 mousePos = MouseToWorldPos(mouse_p->pos);
+
+	Rect rect = NewRect(VECTOR2_ZERO, VECTOR2_ZERO);
+	if (mouse_p->leftButton == MOUSE_PRESSED)
+	{
+		mouseStartPos = mousePos;
+	}
+	if (mouse_p->leftButton == MOUSE_PRESSED_HOLD)
+	{
+		rect = NewRect(mouseStartPos, mousePos - mouseStartPos);
+	}
+
+	return rect;
 }
 
 void EditorScrollCallback(double yoffset)
@@ -130,7 +164,14 @@ void EditorInit()
 	asteroid.textureHandle = TEXTURE_ASTEROID;
 	asteroid.uv = NewRect(VECTOR2_ZERO, V2(0.25f, 0.25f));
 
-	selected = -1;
+	memset(&asteroid2, 0, sizeof(asteroid2));
+	asteroid2.pos = -325.0f * VECTOR2_ONE;
+	asteroid2.facingV = VECTOR2_UP;
+	asteroid2.size = 80.0f;
+	asteroid2.textureHandle = TEXTURE_ASTEROID;
+	asteroid2.uv = NewRect(V2(0.25f, 0.25f), V2(0.25f, 0.25f));
+
+	memset(selectedIndexes, 0, sizeof(selectedIndexes));
 }
 
 void Editor(Renderer* renderer_p)
@@ -140,22 +181,36 @@ void Editor(Renderer* renderer_p)
 
 	if (mouse.leftButton == MOUSE_PRESSED)
 	{
-		selected = SelectSingle(MouseToWorldPos(mouse.pos));
+		memset(selectedIndexes, 0, sizeof(selectedIndexes));
+		selectedIndexes[0] = SelectSingle(MouseToWorldPos(mouse.pos));
 	}
 
+	Rect selectionRect = SelectionRect(&mouse);
+	if (selectionRect.size != VECTOR2_ZERO)
+	{
+		memset(selectedIndexes, 0, sizeof(selectedIndexes));
+		SelectMultiple(selectionRect, selectedIndexes);
+	}	
+	
 	DrawGrid(renderer_p, &camera, GRID_SIZE);
 
-	for (int i = 0; i < MAX_ENTITIES; i++)
+	for (int i = 1; i < MAX_ENTITIES + 1; i++)
 	{
 		Entity* entity_p = entitiesArr_p[i];
 		PushSprite(renderer_p, entity_p->pos, entity_p->size * VECTOR2_ONE, entity_p->facingV, entity_p->textureHandle, COLOR_WHITE, entity_p->uv);
 	}
 
-	if (selected >= 0)
+	for (int i = 0; i < MAX_ENTITIES; i++)
 	{
+		int selected = selectedIndexes[i];
 		Entity* entity_p = entitiesArr_p[selected];
-		PushRect(renderer_p, NewRectCenterPos(entity_p->pos, entity_p->size * VECTOR2_ONE), COLOR_GREEN, VECTOR2_UP);
+		if (entity_p)
+		{
+			PushRect(renderer_p, NewRectCenterPos(entity_p->pos, entity_p->size * VECTOR2_ONE), COLOR_GREEN, VECTOR2_UP);
+		}
 	}
+
+	PushRect(renderer_p, selectionRect, COLOR_YELLOW, VECTOR2_UP);
 
 	if (UIButton("Reset", NewRect(V2(0.94f, 0.97f), V2(0.05f, 0.02f))))
 	{
