@@ -73,19 +73,23 @@ static void DrawGrid(Renderer* renderer_p, Camera* camera_p, int gridSize)
 	}
 }
 
-static void CameraPan(Mouse* mouse_p)
+static Vector2 CameraPan(Camera* camera_p, Mouse* mouse_p)
 {
 	static Vector2 mouseStartPos;
 	static Vector2 camStartPos;
+
+	Vector2 camPos = camera_p->rect.pos;
 	if (mouse_p->rightButton == MOUSE_PRESSED)
 	{
 		mouseStartPos = mouse_p->pos;
-		camStartPos = camera.rect.pos;
+		camStartPos = camera_p->rect.pos;
 	}
 	if (mouse_p->rightButton == MOUSE_PRESSED_HOLD)
 	{
-		camera.rect.pos = camStartPos - (mouse_p->pos - mouseStartPos);
+		camPos = camStartPos - (mouse_p->pos - mouseStartPos);
 	}
+
+	return camPos;
 }
 
 static int SelectSingle(Vector2 mousePos)
@@ -119,7 +123,7 @@ static void SelectMultiple(Rect selectionRect, int selectedIndexes[])
 	}
 }
 
-static Rect SelectionRect(Mouse* mouse_p)
+static Rect GetSelectionRect(Mouse* mouse_p)
 {
 	static Vector2 mouseStartPos;
 
@@ -177,7 +181,7 @@ void EditorInit()
 void Editor(Renderer* renderer_p)
 {
 	Mouse mouse = GameInput_GetMouse();
-	CameraPan(&mouse);
+	camera.rect.pos = CameraPan(&camera, &mouse);
 
 	if (mouse.leftButton == MOUSE_PRESSED)
 	{
@@ -185,12 +189,30 @@ void Editor(Renderer* renderer_p)
 		selectedIndexes[0] = SelectSingle(MouseToWorldPos(mouse.pos));
 	}
 
-	Rect selectionRect = SelectionRect(&mouse);
+	Rect selectionRect = GetSelectionRect(&mouse);
 	if (selectionRect.size != VECTOR2_ZERO)
 	{
 		memset(selectedIndexes, 0, sizeof(selectedIndexes));
 		SelectMultiple(selectionRect, selectedIndexes);
-	}	
+	}
+
+	if (GameInput_ButtonDown(BUTTON_UP_ARROW))    camera.rect.pos += GRID_SIZE * VECTOR2_UP;
+	if (GameInput_ButtonDown(BUTTON_LEFT_ARROW))  camera.rect.pos += GRID_SIZE * VECTOR2_LEFT;
+	if (GameInput_ButtonDown(BUTTON_DOWN_ARROW))  camera.rect.pos += GRID_SIZE * VECTOR2_DOWN;
+	if (GameInput_ButtonDown(BUTTON_RIGHT_ARROW)) camera.rect.pos += GRID_SIZE * VECTOR2_RIGHT;
+	
+	Vector2 moveV = VECTOR2_ZERO;
+	if (GameInput_ButtonDown(BUTTON_W)) moveV = VECTOR2_UP;
+	if (GameInput_ButtonDown(BUTTON_A)) moveV = VECTOR2_LEFT;
+	if (GameInput_ButtonDown(BUTTON_S)) moveV = VECTOR2_DOWN;	
+	if (GameInput_ButtonDown(BUTTON_D)) moveV = VECTOR2_RIGHT;
+
+	for (int i = 0; i < MAX_ENTITIES; i++)
+	{
+		int selected = selectedIndexes[i];
+		Entity* entity_p = entitiesArr_p[selected];
+		if (entity_p) entity_p->pos += GRID_SIZE * moveV;
+	}
 	
 	DrawGrid(renderer_p, &camera, GRID_SIZE);
 
