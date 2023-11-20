@@ -25,6 +25,7 @@
 #include "renderer.h"
 #include "ui.h"
 #include "test.h"
+#include "editor.h"
 
 #define STB_TRUETYPE_IMPLEMENTATION
 #include <stb_truetype.h>
@@ -39,7 +40,22 @@ enum DbgPausedStateE
 	DBG_PAUSED_PAUSED,     // Completely paused
 };
 
+enum GameModeE
+{
+	GAMEMODE_NONE,
+	GAMEMODE_GAME,
+	GAMEMODE_EDITOR,
+};
+
+struct FrameCtrl
+{
+	bool quitApplication;
+	bool rendererDoNotClear;
+};
+
 Vector2 ScreenDim = V2(900, 900);
+DbgPausedStateE DbgPausedState = DBG_PAUSED_NONE;
+GameModeE GameMode = GAMEMODE_GAME;
 
 static void GlfwErrorCallback(int error, const char* description)
 {
@@ -74,6 +90,7 @@ static void BindButtons()
 	GameInput_BindButton(BUTTON_DEL, GLFW_KEY_DELETE);
 	GameInput_BindButton(BUTTON_END, GLFW_KEY_END);
 	GameInput_BindButton(BUTTON_LCTRL, GLFW_KEY_LEFT_CONTROL);
+	GameInput_BindButton(BUTTON_F1, GLFW_KEY_F1);
 	GameInput_BindButton(BUTTON_F10, GLFW_KEY_F10);
 	GameInput_BindButton(BUTTON_F11, GLFW_KEY_F11);
 }
@@ -95,6 +112,51 @@ static double r2()
 void CharCallback(GLFWwindow* window, unsigned int codepoint)
 {
 	UICharCallback(codepoint);
+}
+
+void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
+{
+	EditorScrollCallback(yoffset);
+}
+
+static FrameCtrl FrameMain(Renderer* renderer_p)
+{
+	FrameCtrl frame;
+	frame.quitApplication = false;
+	frame.rendererDoNotClear = false;
+
+	switch (GameMode)
+	{
+	case GAMEMODE_GAME:
+	{
+		if (GameInput_ButtonDown(BUTTON_F10))
+		{
+			if (DbgPausedState == DBG_PAUSED_NONE)   DbgPausedState = DBG_PAUSED_FRAME;
+			if (DbgPausedState == DBG_PAUSED_PAUSED) DbgPausedState = DBG_PAUSED_NONE;
+		}
+		if (GameInput_ButtonDown(BUTTON_F11))
+		{
+			DbgPausedState = DBG_PAUSED_FRAME;
+		}
+		bool gameUpdate = (DbgPausedState == DBG_PAUSED_NONE) || (DbgPausedState == DBG_PAUSED_FRAMEPLUS1); // If dbg paused just happened, update the game until next frame since we will clear the renderer first.
+		bool rendererClear = (DbgPausedState == DBG_PAUSED_NONE) || (DbgPausedState == DBG_PAUSED_FRAME);      // If dbg paused just happened, clear the current frame only and don't clear anymore.
+		if (gameUpdate)
+		{
+			frame.quitApplication = GameUpdateAndRender(GetDeltaT(), renderer_p);
+			//bool quit = Test(&renderer, GetDeltaT());
+		}
+		frame.rendererDoNotClear = !rendererClear;
+	}
+		break;
+	case GAMEMODE_EDITOR:
+		Editor(renderer_p);
+		break;
+	default:
+		assert(false);
+		break;
+	}
+
+	return frame;
 }
 
 int main(void)
@@ -144,12 +206,13 @@ int main(void)
 	ButtonState buttonStates[MAX_BUTTONS];
 	glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
 	glfwSetCharCallback(window, CharCallback);
+	glfwSetScrollCallback(window, ScrollCallback);
 
 	UIInit(&renderer);
 	GameInit();
+	EditorInit();
 
 	U64 frameCnt = 0;
-	DbgPausedStateE dbgPausedState = DBG_PAUSED_NONE;
 	while (!glfwWindowShouldClose(window))
 	{
 	  for (int i = 0; i < MAX_BUTTONS; i++)
@@ -159,39 +222,24 @@ int main(void)
 
 	  double mouseXpos, mouseYpos;
 	  glfwGetCursorPos(window, &mouseXpos, &mouseYpos);
-	  GameInput_NewFrame(buttonStates, glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS, V2(mouseXpos, mouseYpos), ScreenDim, GetDeltaT());
+	  GameInput_NewFrame(buttonStates, glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS, glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS, V2(mouseXpos, mouseYpos), ScreenDim, GetDeltaT());
 	  UINewFrame(GetDeltaT(), ScreenDim);
 
-	  if (GameInput_ButtonDown(BUTTON_F10)) 
-	  { 
-		  if (dbgPausedState == DBG_PAUSED_NONE)   dbgPausedState = DBG_PAUSED_FRAME;
-		  if (dbgPausedState == DBG_PAUSED_PAUSED) dbgPausedState = DBG_PAUSED_NONE;
-	  }
-	  if (GameInput_ButtonDown(BUTTON_F11)) 
-	  { 
-		  dbgPausedState = DBG_PAUSED_FRAME;
-	  }	  	  
+	  if (GameInput_ButtonDown(BUTTON_F1)) GameMode == GAMEMODE_GAME ? GameMode = GAMEMODE_EDITOR : GameMode = GAMEMODE_GAME;
 
-	  bool quit = false;
-	  bool gameUpdate =    (dbgPausedState == DBG_PAUSED_NONE) || (dbgPausedState == DBG_PAUSED_FRAMEPLUS1); // If dbg paused just happened, update the game until next frame since we will clear the renderer first.
-	  bool rendererClear = (dbgPausedState == DBG_PAUSED_NONE) || (dbgPausedState == DBG_PAUSED_FRAME);      // If dbg paused just happened, clear the current frame only and don't clear anymore.
-	  if (gameUpdate)
-	  {
-		  quit = GameUpdateAndRender(GetDeltaT(), &renderer);
-		  //bool quit = Test(&renderer, GetDeltaT());
-	  }
-	  
+	  FrameCtrl frame = FrameMain(&renderer);
+
 	  OpenGLEndFrame(&openGl, &renderer, textures, ScreenDim);
-	  if (rendererClear) RendererEndFrame(&renderer);
+	  if (!frame.rendererDoNotClear) RendererEndFrame(&renderer);
 	  glfwSwapBuffers(window);
 	  glfwPollEvents();
 
-	  if      (dbgPausedState == DBG_PAUSED_FRAME)      dbgPausedState = DBG_PAUSED_FRAMEPLUS1;
-	  else if (dbgPausedState == DBG_PAUSED_FRAMEPLUS1) dbgPausedState = DBG_PAUSED_PAUSED;
-
-	  if (quit) break;
+	  if      (DbgPausedState == DBG_PAUSED_FRAME)      DbgPausedState = DBG_PAUSED_FRAMEPLUS1;
+	  else if (DbgPausedState == DBG_PAUSED_FRAMEPLUS1) DbgPausedState = DBG_PAUSED_PAUSED;
 
 	  frameCnt++;
+
+	  if (frame.quitApplication) break;
 	}
 
 	//stbi_image_free(data); //@nocommit

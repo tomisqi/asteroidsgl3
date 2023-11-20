@@ -79,7 +79,7 @@ void UINewFrame(float deltaT, Vector2 screenDim)
 
 	Mouse mouse = GetUiMouse();
 
-	if (mouse.state == MOUSE_PRESSED)
+	if (mouse.leftButton == MOUSE_PRESSED)
 	{
 		ui.textInputActive = -1;
 		for (int i = 0; i < ui.textInputsCount; i++)
@@ -173,7 +173,10 @@ bool UIButton(const char* text, Rect rect, UITextAlignmentE textAlignment)
 	{
 		UIRect(rect, COLOR_BLUE);
 		UILabel(text, rect, textAlignment, COLOR_WHITE);
-		if (mouse.state == MOUSE_PRESSED || GameInput_ButtonDown(BUTTON_ENTER)) return true;
+		if ((mouse.leftButton == MOUSE_PRESSED) || (mouse.leftButton == MOUSE_DOUBLECLICK) || GameInput_ButtonDown(BUTTON_ENTER))
+		{
+			return true;
+		}
 	}
 	else
 	{
@@ -347,13 +350,13 @@ void UITextInput(Rect rect, char* textBuf)
 	}
 
 	Mouse mouse = GetUiMouse();
-	if (mouse.state == MOUSE_PRESSED)
+	if (mouse.leftButton == MOUSE_PRESSED)
 	{
 		int cursorIdx = FindClosestCharIdx(textBuf, textLen, rect.pos.x + 6, mouse.pos.x);
 		textInputText_p->cursorIdx = cursorIdx;
 		textInputText_p->selectionEndIdx = cursorIdx;
 	}	
-	if (mouse.state == MOUSE_PRESSED_HOLD)
+	if (mouse.leftButton == MOUSE_PRESSED_HOLD)
 	{
 		int cursorIdx = FindClosestCharIdx(textBuf, textLen, rect.pos.x + 6, mouse.pos.x);
 		textInputText_p->cursorIdx = cursorIdx;

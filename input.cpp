@@ -26,27 +26,42 @@ void GameInput_Init()
 	}
 }
 
-void GameInput_NewFrame(ButtonState newButtonStates[], bool mouseIsPressed, Vector2 mousePosScreen, Vector2 screenDim, float deltaT)
+void GameInput_NewFrame(ButtonState newButtonStates[], bool mouseLeftPressed, bool mouseRightPressed, Vector2 mousePosScreen, Vector2 screenDim, float deltaT)
 {
 	gameInput.time += deltaT;
 
-	MouseStateE prevState = gameInput.mouse.state;
-	gameInput.mouse.state = MOUSE_RELEASED;
-	if (mouseIsPressed)
+	// Mouse Left Button
+	MouseStateE prev = gameInput.mouse.leftButton;
+	gameInput.mouse.leftButton = MOUSE_RELEASED;
+	if (mouseLeftPressed)
 	{
-		gameInput.mouse.state = MOUSE_PRESSED_HOLD;
-		if (prevState == MOUSE_RELEASED)
+		gameInput.mouse.leftButton = MOUSE_PRESSED_HOLD;
+		if (prev == MOUSE_RELEASED)
 		{
-			gameInput.mouse.state = MOUSE_PRESSED;
-			if (ELAPSED(gameInput.time, gameInput.mouse.tLastPress) < 0.2f) gameInput.mouse.state = MOUSE_DOUBLECLICK;
-			gameInput.mouse.tLastPress = gameInput.time;
+			gameInput.mouse.leftButton = MOUSE_PRESSED;
+			if (ELAPSED(gameInput.time, gameInput.mouse.tLastLeftPress) < 0.2f) gameInput.mouse.leftButton = MOUSE_DOUBLECLICK;
+			gameInput.mouse.tLastLeftPress = gameInput.time;
 		}
 	}
 
+	// Mouse Right Button
+	prev = gameInput.mouse.rightButton;
+	gameInput.mouse.rightButton = MOUSE_RELEASED;
+	if (mouseRightPressed)
+	{
+		gameInput.mouse.rightButton = MOUSE_PRESSED_HOLD;
+		if (prev == MOUSE_RELEASED)
+		{
+			gameInput.mouse.rightButton = MOUSE_PRESSED;
+		}
+	}
+
+	// Mouse move
 	Vector2 prevMousePos = gameInput.mouse.pos;
 	gameInput.mouse.pos = V2(mousePosScreen.x, screenDim.y - mousePosScreen.y); // MousePosScreen.x is Ok, but we flip MousePosScreen.y.
 	gameInput.mouse.mouseMoved = (prevMousePos != gameInput.mouse.pos);
 
+	// Keyboard
 	for (int i = 0; i < MAX_BUTTONS; i++)
 	{
 		gameInput.buttons[i].prevState = gameInput.buttons[i].state;
@@ -73,5 +88,5 @@ Mouse GameInput_GetMouse()
 
 float GetMouseHoldTime(Mouse mouse)
 {
-	return ELAPSED(gameInput.time, mouse.tLastPress); // Use gameInput.time here since tLastPressed is based gameInput.time (another "time" might have another starting point)
+	return ELAPSED(gameInput.time, mouse.tLastLeftPress); // Use gameInput.time here since tLastPressed is based gameInput.time (another "time" might have another starting point)
 }

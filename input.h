@@ -20,9 +20,10 @@ enum MouseStateE : U8
 
 struct Mouse
 {
-	MouseStateE state;
+	MouseStateE leftButton;
+	MouseStateE rightButton;
 	Vector2 pos; // pos = (0,0) to (ScreenDim.x, ScreenDim.y)
-	double tLastPress;
+	double tLastLeftPress;
 	bool mouseMoved;
 };
 
@@ -47,6 +48,7 @@ enum ButtonVal
 	BUTTON_END,
 	BUTTON_DEL,
 	BUTTON_LCTRL,
+	BUTTON_F1,
 	BUTTON_F10,
 	BUTTON_F11,
 	MAX_BUTTONS,
@@ -70,7 +72,7 @@ struct GameInput
 bool GameInput_ButtonDown(ButtonVal buttonVal);
 bool GameInput_Button(ButtonVal buttonVal);
 void GameInput_Init();
-void GameInput_NewFrame(ButtonState newButtonStates[], bool mouseIsPressed, Vector2 mousePosScreen, Vector2 screenDim, float deltaT);
+void GameInput_NewFrame(ButtonState newButtonStates[], bool mouseLeftPressed, bool mouseRightPressed, Vector2 mousePosScreen, Vector2 screenDim, float deltaT);
 void GameInput_BindButton(ButtonVal buttonVal, int platformVal);
 int GameInput_GetBinding(int buttonIdx);
 Mouse GameInput_GetMouse();

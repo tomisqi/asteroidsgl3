@@ -124,6 +124,7 @@
   <ItemGroup>
     <ClCompile Include="..\animation.cpp" />
     <ClCompile Include="..\asteroids.cpp" />
+    <ClCompile Include="..\editor.cpp" />
     <ClCompile Include="..\input.cpp" />
     <ClCompile Include="..\libs\glad\glad.c" />
     <ClCompile Include="..\main.cpp" />
@@ -137,6 +138,7 @@
     <ClInclude Include="..\asteroids.h" />
     <ClInclude Include="..\color.h" />
     <ClInclude Include="..\common.h" />
+    <ClInclude Include="..\editor.h" />
     <ClInclude Include="..\hash.h" />
     <ClInclude Include="..\input.h" />
     <ClInclude Include="..\intersect.h" />

@@ -94,11 +94,11 @@ bool Test(Renderer* renderer_p, float deltaT)
 	}
 
 	static Vector2 aimP = VECTOR2_ZERO;
-	if (mouse.state == MOUSE_PRESSED_HOLD && (aimP == VECTOR2_ZERO))
+	if (mouse.leftButton == MOUSE_PRESSED_HOLD && (aimP == VECTOR2_ZERO))
 	{
 		aimP = mouse.pos;
 	}
-	if (mouse.state == MOUSE_RELEASED && aimP != VECTOR2_ZERO)
+	if (mouse.leftButton == MOUSE_RELEASED && aimP != VECTOR2_ZERO)
 	{
 		player.pos = aimP;
 		player.vel = 200.0f * Normalize(mouse.pos - aimP);

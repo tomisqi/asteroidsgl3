@@ -844,7 +844,7 @@ static void Game(float deltaT, Renderer* renderer_p)
 			shipAccelerationV = rightFacingV;
 		}
 
-		if (mouse.state == MOUSE_PRESSED || mouse.state == MOUSE_DOUBLECLICK)
+		if (mouse.leftButton == MOUSE_PRESSED || mouse.leftButton == MOUSE_DOUBLECLICK)
 		{
 			Entity* bullet_p = &bullets[(bulletIdx++) % MAX_BULLETS];
 			bullet_p->pos = ship.pos;
@@ -854,7 +854,7 @@ static void Game(float deltaT, Renderer* renderer_p)
 			bullet_p->tEnabled = time;
 		}
 
-		if ((mouse.state == MOUSE_PRESSED_HOLD) && (GetMouseHoldTime(mouse) > 0.5f) && !chargedBulletHolding_p)
+		if ((mouse.leftButton == MOUSE_PRESSED_HOLD) && (GetMouseHoldTime(mouse) > 0.5f) && !chargedBulletHolding_p)
 		{
 			Entity* bullet_p = &chargedBullets[(chargedBulletIdx++) % MAX_CHARGEDBULLETS];
 			bullet_p->pos = ship.pos + 20.0f * ship.facingV;
@@ -877,7 +877,7 @@ static void Game(float deltaT, Renderer* renderer_p)
 		chargedBulletHolding_p->facingV = ship.facingV;
 		chargedBulletHolding_p->pos = ship.pos + 20.0f * ship.facingV;
 		chargedBulletHolding_p->tEnabled = time;
-		if (mouse.state == MOUSE_RELEASED)
+		if (mouse.leftButton == MOUSE_RELEASED)
 		{
 			chargedBulletHolding_p->vel = ship.vel + BULLET_SPEED * Normalize(ship.facingV);
 			for (int i = 0; i < 2; i++)
