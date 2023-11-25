@@ -27,12 +27,18 @@ struct Camera
 	Rect rect;
 };
 
+struct Selected
+{
+	int count;
+	int indexes[MAX_ENTITIES];
+};
+
 static Camera camera;
 static Entity ship;
 static Entity asteroid;
 static Entity asteroid2;
 static Entity* entitiesArr_p[MAX_ENTITIES + 1] = {nullptr, &ship, &asteroid, &asteroid2 };
-static int selectedIndexes[MAX_ENTITIES] = {0};
+static Selected selected = {0};
 
 static Vector2 MouseToWorldPos(Vector2 mousepos)
 {
@@ -110,15 +116,17 @@ static int SelectSingle(Vector2 mousePos)
 	return index;
 }
 
-static void SelectMultiple(Rect selectionRect, int selectedIndexes[])
+static void SelectMultiple(Rect selectionRect, Selected* selected_p)
 {
+	selected_p->count = 0;
+
 	int nextIndex = 0;
 	for (int i = 1; i < MAX_ENTITIES + 1; i++)
 	{
 		Entity* entity_p = entitiesArr_p[i];
 		if (RectContains(selectionRect, entity_p->pos))
 		{ 
-			selectedIndexes[nextIndex++] = i;
+			selected_p->indexes[selected_p->count++] = i;
 		}
 	}
 }
@@ -140,6 +148,26 @@ static Rect GetSelectionRect(Mouse* mouse_p)
 	}
 
 	return rect;
+}
+
+static void UI()
+{
+	if (UIButton("Reset", NewRect(V2(0.94f, 0.97f), V2(0.05f, 0.02f))))
+	{
+		camera.rect = NewRectCenterPos(VECTOR2_ZERO, CAM_INITIAL_SIZE);
+	}
+	if (UIButton("+", NewRect(V2(0.94f, 0.945f), V2(0.02f, 0.02f))))
+	{
+		Vector2 camCenter = GetRectCenter(camera.rect);
+		Vector2 camSize = camera.rect.size - 5 * CAM_ZOOM_STEP * VECTOR2_ONE;
+		camera.rect = NewRectCenterPos(camCenter, camSize);
+	}
+	if (UIButton("-", NewRect(V2(0.97f, 0.945f), V2(0.02f, 0.02f))))
+	{
+		Vector2 camCenter = GetRectCenter(camera.rect);
+		Vector2 camSize = camera.rect.size + 5 * CAM_ZOOM_STEP * VECTOR2_ONE;
+		camera.rect = NewRectCenterPos(camCenter, camSize);
+	}
 }
 
 void EditorScrollCallback(double yoffset)
@@ -175,25 +203,26 @@ void EditorInit()
 	asteroid2.textureHandle = TEXTURE_ASTEROID;
 	asteroid2.uv = NewRect(V2(0.25f, 0.25f), V2(0.25f, 0.25f));
 
-	memset(selectedIndexes, 0, sizeof(selectedIndexes));
+	memset(&selected, 0, sizeof(selected));
 }
 
 void Editor(Renderer* renderer_p)
 {
+	UI();
+
 	Mouse mouse = GameInput_GetMouse();
 	camera.rect.pos = CameraPan(&camera, &mouse);
 
 	if (mouse.leftButton == MOUSE_PRESSED)
 	{
-		memset(selectedIndexes, 0, sizeof(selectedIndexes));
-		selectedIndexes[0] = SelectSingle(MouseToWorldPos(mouse.pos));
+		selected.indexes[0] = SelectSingle(MouseToWorldPos(mouse.pos));
+		selected.count = selected.indexes[0] > 0 ? 1 : 0;
 	}
 
 	Rect selectionRect = GetSelectionRect(&mouse);
 	if (selectionRect.size != VECTOR2_ZERO)
 	{
-		memset(selectedIndexes, 0, sizeof(selectedIndexes));
-		SelectMultiple(selectionRect, selectedIndexes);
+		SelectMultiple(selectionRect, &selected);
 	}
 
 	if (GameInput_ButtonDown(BUTTON_UP_ARROW))    camera.rect.pos += GRID_SIZE * VECTOR2_UP;
@@ -202,16 +231,30 @@ void Editor(Renderer* renderer_p)
 	if (GameInput_ButtonDown(BUTTON_RIGHT_ARROW)) camera.rect.pos += GRID_SIZE * VECTOR2_RIGHT;
 	
 	Vector2 moveV = VECTOR2_ZERO;
+	float rotation = 0;
 	if (GameInput_ButtonDown(BUTTON_W)) moveV = VECTOR2_UP;
-	if (GameInput_ButtonDown(BUTTON_A)) moveV = VECTOR2_LEFT;
-	if (GameInput_ButtonDown(BUTTON_S)) moveV = VECTOR2_DOWN;	
-	if (GameInput_ButtonDown(BUTTON_D)) moveV = VECTOR2_RIGHT;
+	if (GameInput_ButtonDown(BUTTON_A)) { if (GameInput_Button(BUTTON_K)) rotation = +90.0f; else moveV = VECTOR2_LEFT;  }
+	if (GameInput_ButtonDown(BUTTON_S)) moveV = VECTOR2_DOWN;
+	if (GameInput_ButtonDown(BUTTON_D)) { if (GameInput_Button(BUTTON_K)) rotation = -90.0f; else moveV = VECTOR2_RIGHT; }
 
-	for (int i = 0; i < MAX_ENTITIES; i++)
+	if (moveV != VECTOR2_ZERO)
 	{
-		int selected = selectedIndexes[i];
-		Entity* entity_p = entitiesArr_p[selected];
-		if (entity_p) entity_p->pos += GRID_SIZE * moveV;
+		for (int i = 0; i < selected.count; i++)
+		{
+			int idx = selected.indexes[i];
+			Entity* entity_p = entitiesArr_p[idx];
+			if (entity_p) entity_p->pos += GRID_SIZE * moveV;
+		}
+	}
+
+	if (rotation != 0)
+	{
+		for (int i = 0; i < selected.count; i++)
+		{
+			int idx = selected.indexes[i];
+			Entity* entity_p = entitiesArr_p[idx];
+			entity_p->facingV = RotateDeg(entity_p->facingV, rotation);
+		}
 	}
 	
 	DrawGrid(renderer_p, &camera, GRID_SIZE);
@@ -222,10 +265,10 @@ void Editor(Renderer* renderer_p)
 		PushSprite(renderer_p, entity_p->pos, entity_p->size * VECTOR2_ONE, entity_p->facingV, entity_p->textureHandle, COLOR_WHITE, entity_p->uv);
 	}
 
-	for (int i = 0; i < MAX_ENTITIES; i++)
+	for (int i = 0; i < selected.count; i++)
 	{
-		int selected = selectedIndexes[i];
-		Entity* entity_p = entitiesArr_p[selected];
+		int idx = selected.indexes[i];
+		Entity* entity_p = entitiesArr_p[idx];
 		if (entity_p)
 		{
 			PushRect(renderer_p, NewRectCenterPos(entity_p->pos, entity_p->size * VECTOR2_ONE), COLOR_GREEN, VECTOR2_UP);
@@ -233,23 +276,6 @@ void Editor(Renderer* renderer_p)
 	}
 
 	PushRect(renderer_p, selectionRect, COLOR_YELLOW, VECTOR2_UP);
-
-	if (UIButton("Reset", NewRect(V2(0.94f, 0.97f), V2(0.05f, 0.02f))))
-	{
-		camera.rect = NewRectCenterPos(VECTOR2_ZERO, CAM_INITIAL_SIZE);
-	}
-	if (UIButton("+", NewRect(V2(0.94f, 0.945f), V2(0.02f, 0.02f))))
-	{
-		Vector2 camCenter = GetRectCenter(camera.rect);
-		Vector2 camSize = camera.rect.size - 5 * CAM_ZOOM_STEP * VECTOR2_ONE;
-		camera.rect = NewRectCenterPos(camCenter, camSize);
-	}
-	if (UIButton("-", NewRect(V2(0.97f, 0.945f), V2(0.02f, 0.02f))))
-	{
-		Vector2 camCenter = GetRectCenter(camera.rect);
-		Vector2 camSize = camera.rect.size + 5 * CAM_ZOOM_STEP * VECTOR2_ONE;
-		camera.rect = NewRectCenterPos(camCenter, camSize);
-	}
 
 	SetSpritesOrtographicProj(renderer_p, camera.rect);
 	SetWireframeOrtographicProj(renderer_p, camera.rect);

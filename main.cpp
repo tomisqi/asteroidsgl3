@@ -78,6 +78,7 @@ static void BindButtons()
 	GameInput_BindButton(BUTTON_A, GLFW_KEY_A);
 	GameInput_BindButton(BUTTON_D, GLFW_KEY_D);
 	GameInput_BindButton(BUTTON_W, GLFW_KEY_W);
+	GameInput_BindButton(BUTTON_K, GLFW_KEY_K);
 	GameInput_BindButton(BUTTON_UP_ARROW, GLFW_KEY_UP);
 	GameInput_BindButton(BUTTON_LEFT_ARROW, GLFW_KEY_LEFT);
 	GameInput_BindButton(BUTTON_RIGHT_ARROW, GLFW_KEY_RIGHT);
