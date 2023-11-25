@@ -183,6 +183,7 @@ static int explosionsSmallIdx;
 static AnimationObject explosionsSmall[MAX_EXPLOSIONS_SMALL];
 static AnimationObject explosionShip;
 static Entity turrets[MAX_TURRETS];
+static double levelCountdown;
 
 static bool PausedMenu();
 
@@ -273,6 +274,8 @@ static Level AdvanceLevel(Level prevLevel)
 		asteroid_p->rotSpeed = GetRandomSign() * GetRandomValue(ASTEROID_ROT_SPEED_MIN, ASTEROID_ROT_SPEED_MAX);
 		asteroid_p->vel = GetRandomValue(ASTEROID_SPEED_MIN, ASTEROID_SPEED_MAX) * RotateDeg(VECTOR2_UP, GetRandomValue(0, 360));
 	}
+
+	levelCountdown = 60.0f;
 
 	return level;
 }
@@ -421,6 +424,8 @@ static void GameStart()
 	memset(&entityCollisions, 0, sizeof(entityCollisions));
 
 	score = 0;
+
+	levelCountdown = 60.0f;
 
 	paused = false;
 }
@@ -812,6 +817,7 @@ static void Game(float deltaT, Renderer* renderer_p)
 	if (paused) goto GAMEUPDATE_END;
 
 	time += deltaT;
+	levelCountdown = fmax(0, levelCountdown - deltaT);
 
 	Mouse mouse = GameInput_GetMouse();
 	mouse.pos = MouseToWorldPos(mouse.pos);
@@ -1036,6 +1042,8 @@ static void Game(float deltaT, Renderer* renderer_p)
 		}
 	}
 
+	if (levelCountdown <= 0) ship.health = 0;
+
 	if (!ship.enabled && time >= ship.e.tRespawn)
 	{
 		ship.enabled = true;
@@ -1044,6 +1052,8 @@ static void Game(float deltaT, Renderer* renderer_p)
 		ship.tEnabled = time;
 		ship.tInvisibility = time + INVISIBILITY_DURATION;
 		ship.health = 100.0f;
+
+		if (levelCountdown <= 0) levelCountdown = 60.0f;
 	}
 
 	if (ship.health == 0 && ship.enabled)
@@ -1198,8 +1208,8 @@ GAMEUPDATE_END:
 	UIRect(NewRect(V2(0.8f, 0.010f), V2(0.19f, 0.02f)), COLOR_WHITE);
 	UIRect(NewRect(V2(0.801f, 0.011f), V2(healthBarWidth, 0.018f)), Col(0.19f, 0.49f, 0.25f, 1.0f));
 
-	sprintf(buf, "%.2f", Magnitude(ship.vel));
-	UILabel(buf, V2(0.95f, 0.5f), TEXT_ALIGN_RIGHT);
+	sprintf(buf, "%.2f", levelCountdown);
+	UILabel(buf, V2(0.45f, 0.01f), TEXT_ALIGN_RIGHT);
 
 	if (paused) paused = PausedMenu();
 

@@ -52,7 +52,7 @@ static inline int AlignToGrid(float coord, int gridSize)
 	return gridSize * ((int)coord / gridSize);
 }
 
-static float GetZoomLevel(Camera* camera_p, float zoomStep)
+static float GetZoomLevel(Camera* camera_p, float zoomStep = GRID_SIZE)
 {
 	if (CAM_INITIAL_SIZE.x == camera_p->rect.size.x) return 1.0f;
 	return 2.0f * ((CAM_INITIAL_SIZE.x - camera_p->rect.size.x) / zoomStep);
