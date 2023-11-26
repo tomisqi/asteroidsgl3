@@ -3,6 +3,6 @@
 
 void EditorInit();
 
-void Editor(Renderer* renderer_p);
+void Editor(float deltaT, Renderer* renderer_p);
 
 void EditorScrollCallback(double yoffset);

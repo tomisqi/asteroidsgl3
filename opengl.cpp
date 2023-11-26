@@ -205,7 +205,7 @@ void OpenGLEndFrame(OpenGL* openGl_p, const Renderer* renderer_p, Texture textur
 			glBufferData(GL_ARRAY_BUFFER, renderCmds_p->vertexCount * sizeof(TexturedVertex), renderCmds_p->vertexArray, GL_DYNAMIC_DRAW);
 			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(TexturedVertex), (void*)OFFSET_OF(TexturedVertex, pos)); // position attribute
 			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(TexturedVertex), (void*)OFFSET_OF(TexturedVertex, color)); // color attribute
+			glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(TexturedVertex), (void*)OFFSET_OF(TexturedVertex, color)); // color attribute
 			glEnableVertexAttribArray(1);
 			glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(TexturedVertex), (void*)OFFSET_OF(TexturedVertex, uv)); // uv attribute
 			glEnableVertexAttribArray(2);

@@ -39,7 +39,7 @@ void UICharCallback(unsigned int codepoint);
 
 void UILayout_(int id, bool keyboardNavigate, UILayoutE uiLayout, Vector2 pos, Vector2 delta);
 
-#define UILayout(keyboardNavigate) UILayout_(__COUNTER__ + 1, keyboardNavigate, UI_NONE, VECTOR2_ZERO, VECTOR2_ZERO)
+#define UILayoutNav() UILayout_(__COUNTER__ + 1, true, UI_NONE, VECTOR2_ZERO, VECTOR2_ZERO)
 
 #define UILayoutVertical(pos, delta) UILayout_(__COUNTER__ + 1, false, UI_VERTICAL, pos, delta)
 

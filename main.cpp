@@ -150,7 +150,7 @@ static FrameCtrl FrameMain(Renderer* renderer_p)
 	}
 		break;
 	case GAMEMODE_EDITOR:
-		Editor(renderer_p);
+		Editor(GetDeltaT(), renderer_p);
 		break;
 	default:
 		assert(false);

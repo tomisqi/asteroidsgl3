@@ -6,6 +6,7 @@
 #include "ui.h"
 #include "rect.h"
 #include "common.h"
+#include "utils.h"
 
 #define COLOR_GRID Col(0.24f, 0.24f, 0.24f)
 #define GRID_SIZE 100
@@ -37,12 +38,21 @@ struct Selected
 	int indexes[MAX_ENTITIES];
 };
 
+struct Notification
+{
+	char text[128];
+	double tStartNotification;
+	double tEndNotification;
+};
+
 static Camera camera;
 static Entity ship;
 static Entity asteroid;
 static Entity asteroid2;
 static Entity* entitiesArr_p[MAX_ENTITIES + 1] = {nullptr, &ship, &asteroid, &asteroid2 };
 static Selected selected = {0};
+static Notification notification;
+static double time;
 
 static Vector2 MouseToWorldPos(Vector2 mousepos)
 {
@@ -154,6 +164,25 @@ static Rect GetSelectionRect(Mouse* mouse_p)
 	return rect;
 }
 
+static void PushNotification(char* text, float ttl = 3.0f)
+{
+	// Even though it's called "Push", we are actually overriding whatever we have in notification.text
+	strcpy(notification.text, text);
+	notification.tStartNotification = time;
+	notification.tEndNotification = time + ttl;
+}
+
+static void ShowNotification(Notification* notification_p)
+{
+	if (time <= notification_p->tEndNotification)
+	{
+		float duration = notification_p->tEndNotification - notification_p->tStartNotification;
+		float perc = (time - notification_p->tStartNotification) / duration;
+		float a = Lerp(1.0f, 0.0f, perc);
+		UILabel(notification.text, 0.5f * VECTOR2_ONE, TEXT_ALIGN_CENTER, Col(1.0f, 1.0f, 1.0f, a));
+	}
+}
+
 static void UI()
 {	
 	UILayoutVertical(V2(0.01f, 0.97f), UI_DELTA);
@@ -163,7 +192,7 @@ static void UI()
 	}
 	if (UIButton("Save", V2(0.05f, 0.02f)))
 	{
-		
+		PushNotification("Saved!");
 	}
 }
 
@@ -209,7 +238,7 @@ void EditorInit()
 	memset(&selected, 0, sizeof(selected));
 }
 
-void Editor(Renderer* renderer_p)
+void Editor(float deltaT, Renderer* renderer_p)
 {
 	UI();
 
@@ -277,6 +306,10 @@ void Editor(Renderer* renderer_p)
 
 	PushRect(renderer_p, selectionRect, COLOR_YELLOW, VECTOR2_UP);
 
+	ShowNotification(&notification);
+
 	SetSpritesOrtographicProj(renderer_p, camera.rect);
 	SetWireframeOrtographicProj(renderer_p, camera.rect);
+
+	time += deltaT;
 }
