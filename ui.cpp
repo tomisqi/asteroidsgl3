@@ -14,6 +14,7 @@
 
 #define TEXT_CURSOR_BLINKING_PERIOD 1.2f // The following periodicity: WHITE->TRANSPARENT->WHITE->TRANSPARENT-> etc..
 #define MAX_TEXT_INPUTS             10
+#define MAX_LAYOUTS                 16
 
 
 enum UIDirectionE : U8
@@ -32,6 +33,14 @@ struct TextInput
 	Rect rect;
 };
 
+struct Layout
+{
+	UILayoutE uiLayout;
+	bool keyboardNavigate;
+
+	Vector2 nextUiPos;
+};
+
 struct UiContext
 {
 	Renderer* renderer_p;
@@ -48,6 +57,9 @@ struct UiContext
 	int buttonActive;
 	int buttonIdx;
 	int buttonsCount;
+
+	int activeLayoutIdx;
+	Layout layouts[MAX_LAYOUTS];
 };
 
 static UiContext ui;
@@ -59,6 +71,13 @@ void UIInit(Renderer* renderer_p)
 	ui.time = 0;
 	ui.textInputActive = -1;
 	ui.buttonActive = -1;
+
+	Layout layoutDefault = {0};
+	layoutDefault.uiLayout = UI_VERTICAL;
+	layoutDefault.keyboardNavigate = false;
+	layoutDefault.nextUiPos = V2(0.5f, 0.5f);
+
+	ui.layouts[0] = layoutDefault; // If no layout is passed, default is used.
 }
 
 static Mouse GetUiMouse()
@@ -105,6 +124,8 @@ void UINewFrame(float deltaT, Vector2 screenDim)
 	{
 		ui.buttonActive = ui.buttonActive > 0 ? (ui.buttonActive - 1) : ui.buttonsCount - 1;
 	}
+
+	ui.activeLayoutIdx = 0;
 
 #if 0
 	char buf[32] = { 0 };
@@ -164,12 +185,15 @@ void UIRect(Rect rect, Color color)
 	PushUiRect01(ui.renderer_p, rect, color);
 }
 
-bool UIButton(const char* text, Rect rect, UITextAlignmentE textAlignment)
-{	
+static bool UIButton(const char* text, Rect rect, UITextAlignmentE textAlignment, Layout* layout_p)
+{
 	Mouse mouse = GetUiMouse();
 	int thisButton = ui.buttonIdx++;
 
-	if (RectContains(rect, mouse.pos) || (ui.buttonActive == thisButton))
+	if (layout_p->uiLayout == UI_VERTICAL)   layout_p->nextUiPos = rect.pos + rect.size.y * VECTOR2_DOWN + 0.005f * VECTOR2_DOWN;
+	if (layout_p->uiLayout == UI_HORIZONTAL) layout_p->nextUiPos = rect.pos + rect.size.x * VECTOR2_RIGHT + 0.005f * VECTOR2_RIGHT;
+
+	if (RectContains(rect, mouse.pos) || (layout_p->keyboardNavigate && (ui.buttonActive == thisButton)))
 	{
 		UIRect(rect, COLOR_BLUE);
 		UILabel(text, rect, textAlignment, COLOR_WHITE);
@@ -187,47 +211,29 @@ bool UIButton(const char* text, Rect rect, UITextAlignmentE textAlignment)
 	return false;
 }
 
-static void InsertChar(char* str, int strLen, int index, char c)
+bool UIButton(const char* text, Rect rect, UITextAlignmentE textAlignment)
 {
-	int charCnt = strLen - index;
-	char* new_p = &str[strLen];
-	char* old_p = &str[strLen-1];
-	for (int i = 0; i < charCnt; i++)
-	{
-		*new_p = *old_p;
-		new_p--;
-		old_p--;
-	}
-	str[index] = c;
+	Layout* layout_p = &ui.layouts[ui.activeLayoutIdx];
+	return UIButton(text, rect, textAlignment, layout_p);
 }
 
-
-static void RemoveChar(char* str, int strLen, int index)
+bool UIButton(const char* text, Vector2 size, UITextAlignmentE textAlignment)
 {
-	int charCnt = strLen - index;
-	char* new_p = &str[index];
-	char* old_p = &str[index + 1];
-	for (int i = 0; i < charCnt; i++)
-	{
-		*new_p = *old_p;
-		new_p++;
-		old_p++;
-	}
-	if (strLen) str[strLen-1] = '\0';
+	Layout* layout_p = &ui.layouts[ui.activeLayoutIdx];
+	Vector2 pos = layout_p->nextUiPos;
+	Rect rect = NewRect(pos, size);
+	return UIButton(text, rect, textAlignment, layout_p);
 }
 
-static void RemoveChars(char* str, int strLen, int startIdx, int endIdx)
+void UILayout_(int id, bool keyboardNavigate, UILayoutE uiLayout, Vector2 pos)
 {
-	int charCnt = strLen - endIdx;
-	char* new_p = &str[startIdx];
-	char* old_p = &str[endIdx];
-	for (int i = 0; i < charCnt; i++)
-	{
-		*new_p = *old_p;
-		new_p++;
-		old_p++;
-	}
-	while (*new_p) {*new_p = '\0'; new_p++;}
+	printf("%d\n", id);
+	assert(id < MAX_LAYOUTS);
+	ui.activeLayoutIdx = id;
+	Layout* layout_p = &ui.layouts[ui.activeLayoutIdx];
+	layout_p->keyboardNavigate = keyboardNavigate;
+	layout_p->uiLayout = uiLayout;
+	layout_p->nextUiPos = pos;
 }
 
 static int FindClosestCharIdx(char* textBuf, int textLen, float startPosX, float xpos)

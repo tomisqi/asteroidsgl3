@@ -5,6 +5,7 @@
 #include "input.h"
 #include "ui.h"
 #include "rect.h"
+#include "common.h"
 
 #define COLOR_GRID Col(0.24f, 0.24f, 0.24f)
 #define GRID_SIZE 100
@@ -151,7 +152,8 @@ static Rect GetSelectionRect(Mouse* mouse_p)
 }
 
 static void UI()
-{
+{	
+
 	if (UIButton("Reset", NewRect(V2(0.94f, 0.97f), V2(0.05f, 0.02f))))
 	{
 		camera.rect = NewRectCenterPos(VECTOR2_ZERO, CAM_INITIAL_SIZE);
@@ -167,6 +169,24 @@ static void UI()
 		Vector2 camCenter = GetRectCenter(camera.rect);
 		Vector2 camSize = camera.rect.size + 5 * CAM_ZOOM_STEP * VECTOR2_ONE;
 		camera.rect = NewRectCenterPos(camCenter, camSize);
+	}
+
+	UILayoutVertical(0.5f * VECTOR2_ONE);
+	if (UIButton("Start1", V2(0.05f, 0.02f)))
+	{
+
+	}
+	if (UIButton("End1", V2(0.05f, 0.02f)))
+	{
+
+	}
+	if (UIButton("End2", V2(0.05f, 0.02f)))
+	{
+
+	}
+	if (UIButton("End3", V2(0.05f, 0.02f)))
+	{
+
 	}
 }
 
@@ -269,10 +289,7 @@ void Editor(Renderer* renderer_p)
 	{
 		int idx = selected.indexes[i];
 		Entity* entity_p = entitiesArr_p[idx];
-		if (entity_p)
-		{
-			PushRect(renderer_p, NewRectCenterPos(entity_p->pos, entity_p->size * VECTOR2_ONE), COLOR_GREEN, VECTOR2_UP);
-		}
+		PushRect(renderer_p, NewRectCenterPos(entity_p->pos, entity_p->size * VECTOR2_ONE), COLOR_GREEN, VECTOR2_UP);
 	}
 
 	PushRect(renderer_p, selectionRect, COLOR_YELLOW, VECTOR2_UP);

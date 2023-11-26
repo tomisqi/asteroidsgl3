@@ -14,6 +14,10 @@
 #define OFFSET_OF(_TYPE, _MEMBER)	((size_t)&(((_TYPE*)0)->_MEMBER))
 #define ARRAY_COUNT(A)				(sizeof(A) / sizeof(A[0]))
 
+
+#define NAMECONCAT2(A, B) A##B
+#define NAMECONCAT(A, B) NAMECONCAT2(A, B)
+
 typedef int8_t S8;
 typedef uint8_t U8;
 typedef int16_t S16;

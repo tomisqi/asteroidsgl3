@@ -1222,6 +1222,8 @@ GAMEUPDATE_END:
 static bool PausedMenu()
 {
 	bool paused = true;
+
+	UILayout(true);
 	if (UIButton("Continue", NewRect(V2(0.35f, 0.6f), V2(0.3f, 0.05f))))
 	{
 		printf("Continue\n");
@@ -1238,12 +1240,15 @@ static bool PausedMenu()
 		printf("Main Menu\n");
 		scene = SCENE_MAIN_MENU;
 	}
+
 	return paused;
 }
 
 static bool MainMenuMain()
 {
 	bool quitGame = false;
+
+	UILayout(true);
 	if (UIButton("Start Game", NewRect(V2(0.35f, 0.6f), V2(0.3f, 0.05f))))
 	{
 		printf("Start Game\n");
@@ -1265,6 +1270,7 @@ static bool MainMenuMain()
 
 static void Settings()
 {
+	UILayout(true);
 	if (UIButton("Go Back", NewRect(V2(0.4f, 0.5f), V2(0.2f, 0.05f))) || GameInput_ButtonDown(BUTTON_ESC))
 	{
 		printf("Go Back\n");

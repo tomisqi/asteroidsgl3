@@ -51,3 +51,46 @@ static inline float Lerp(float start, float end, float t)
 	t = Clampf(t, 0.0f, 1.0f);
 	return start * (1 - t) + end * t;
 }
+
+static inline void InsertChar(char* str, int strLen, int index, char c)
+{
+	int charCnt = strLen - index;
+	char* new_p = &str[strLen];
+	char* old_p = &str[strLen - 1];
+	for (int i = 0; i < charCnt; i++)
+	{
+		*new_p = *old_p;
+		new_p--;
+		old_p--;
+	}
+	str[index] = c;
+}
+
+
+static inline void RemoveChar(char* str, int strLen, int index)
+{
+	int charCnt = strLen - index;
+	char* new_p = &str[index];
+	char* old_p = &str[index + 1];
+	for (int i = 0; i < charCnt; i++)
+	{
+		*new_p = *old_p;
+		new_p++;
+		old_p++;
+	}
+	if (strLen) str[strLen - 1] = '\0';
+}
+
+static inline void RemoveChars(char* str, int strLen, int startIdx, int endIdx)
+{
+	int charCnt = strLen - endIdx;
+	char* new_p = &str[startIdx];
+	char* old_p = &str[endIdx];
+	for (int i = 0; i < charCnt; i++)
+	{
+		*new_p = *old_p;
+		new_p++;
+		old_p++;
+	}
+	while (*new_p) { *new_p = '\0'; new_p++; }
+}
