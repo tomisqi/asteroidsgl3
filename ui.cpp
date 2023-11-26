@@ -58,8 +58,8 @@ struct UiContext
 	int buttonIdx;
 	int buttonsCount;
 
-	int activeLayoutIdx;
-	Layout layouts[MAX_LAYOUTS];
+	Layout layout;
+	Layout layoutDefault;
 };
 
 static UiContext ui;
@@ -72,12 +72,9 @@ void UIInit(Renderer* renderer_p)
 	ui.textInputActive = -1;
 	ui.buttonActive = -1;
 
-	Layout layoutDefault = {0};
-	layoutDefault.uiLayout = UI_VERTICAL;
-	layoutDefault.keyboardNavigate = false;
-	layoutDefault.nextUiPos = V2(0.5f, 0.5f);
-
-	ui.layouts[0] = layoutDefault; // If no layout is passed, default is used.
+	ui.layoutDefault.uiLayout = UI_NONE;
+	ui.layoutDefault.keyboardNavigate = false;
+	ui.layoutDefault.nextUiPos = V2(0.5f, 0.5f);
 }
 
 static Mouse GetUiMouse()
@@ -125,7 +122,7 @@ void UINewFrame(float deltaT, Vector2 screenDim)
 		ui.buttonActive = ui.buttonActive > 0 ? (ui.buttonActive - 1) : ui.buttonsCount - 1;
 	}
 
-	ui.activeLayoutIdx = 0;
+	ui.layout = ui.layoutDefault;
 
 #if 0
 	char buf[32] = { 0 };
@@ -185,12 +182,14 @@ void UIRect(Rect rect, Color color)
 	PushUiRect01(ui.renderer_p, rect, color);
 }
 
-static bool UIButton(const char* text, Rect rect, UITextAlignmentE textAlignment, Layout* layout_p)
+bool UIButton(const char* text, Rect rect, UITextAlignmentE textAlignment)
 {
 	Mouse mouse = GetUiMouse();
 	int thisButton = ui.buttonIdx++;
 
-	if (layout_p->uiLayout == UI_VERTICAL)   layout_p->nextUiPos = rect.pos + rect.size.y * VECTOR2_DOWN + 0.005f * VECTOR2_DOWN;
+	Layout* layout_p = &ui.layout;
+
+	if (layout_p->uiLayout == UI_VERTICAL)   layout_p->nextUiPos = rect.pos + rect.size.y * VECTOR2_DOWN  + 0.005f * VECTOR2_DOWN;
 	if (layout_p->uiLayout == UI_HORIZONTAL) layout_p->nextUiPos = rect.pos + rect.size.x * VECTOR2_RIGHT + 0.005f * VECTOR2_RIGHT;
 
 	if (RectContains(rect, mouse.pos) || (layout_p->keyboardNavigate && (ui.buttonActive == thisButton)))
@@ -211,29 +210,19 @@ static bool UIButton(const char* text, Rect rect, UITextAlignmentE textAlignment
 	return false;
 }
 
-bool UIButton(const char* text, Rect rect, UITextAlignmentE textAlignment)
-{
-	Layout* layout_p = &ui.layouts[ui.activeLayoutIdx];
-	return UIButton(text, rect, textAlignment, layout_p);
-}
-
 bool UIButton(const char* text, Vector2 size, UITextAlignmentE textAlignment)
 {
-	Layout* layout_p = &ui.layouts[ui.activeLayoutIdx];
-	Vector2 pos = layout_p->nextUiPos;
+	Vector2 pos = ui.layout.nextUiPos;
 	Rect rect = NewRect(pos, size);
-	return UIButton(text, rect, textAlignment, layout_p);
+	return UIButton(text, rect, textAlignment);
 }
 
 void UILayout_(int id, bool keyboardNavigate, UILayoutE uiLayout, Vector2 pos)
 {
-	printf("%d\n", id);
-	assert(id < MAX_LAYOUTS);
-	ui.activeLayoutIdx = id;
-	Layout* layout_p = &ui.layouts[ui.activeLayoutIdx];
-	layout_p->keyboardNavigate = keyboardNavigate;
-	layout_p->uiLayout = uiLayout;
-	layout_p->nextUiPos = pos;
+	//printf("%d\n", id);
+	ui.layout.keyboardNavigate = keyboardNavigate;
+	ui.layout.uiLayout = uiLayout;
+	ui.layout.nextUiPos = pos;
 }
 
 static int FindClosestCharIdx(char* textBuf, int textLen, float startPosX, float xpos)

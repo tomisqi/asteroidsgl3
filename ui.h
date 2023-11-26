@@ -42,3 +42,5 @@ void UILayout_(int id, bool keyboardNavigate, UILayoutE uiLayout, Vector2 pos);
 #define UILayout(keyboardNavigate) UILayout_(__COUNTER__ + 1, keyboardNavigate, UI_NONE, VECTOR2_ZERO)
 
 #define UILayoutVertical(pos) UILayout_(__COUNTER__ + 1, false, UI_VERTICAL, pos)
+
+#define UILayoutHorizontal(pos) UILayout_(__COUNTER__ + 1, false, UI_HORIZONTAL, pos)

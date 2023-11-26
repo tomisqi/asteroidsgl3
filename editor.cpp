@@ -172,19 +172,56 @@ static void UI()
 	}
 
 	UILayoutVertical(0.5f * VECTOR2_ONE);
-	if (UIButton("Start1", V2(0.05f, 0.02f)))
+	if (UIButton("1", V2(0.05f, 0.02f)))
 	{
 
 	}
-	if (UIButton("End1", V2(0.05f, 0.02f)))
+	if (UIButton("2", V2(0.05f, 0.02f)))
 	{
 
 	}
-	if (UIButton("End2", V2(0.05f, 0.02f)))
+	if (UIButton("3", V2(0.05f, 0.02f)))
 	{
 
 	}
-	if (UIButton("End3", V2(0.05f, 0.02f)))
+	if (UIButton("4", V2(0.05f, 0.02f)))
+	{
+
+	}
+
+	UILayoutVertical(0.8f * VECTOR2_ONE);
+	if (UIButton("5", V2(0.05f, 0.02f)))
+	{
+
+	}
+	if (UIButton("6", V2(0.05f, 0.02f)))
+	{
+
+	}
+	if (UIButton("7", V2(0.05f, 0.02f)))
+	{
+
+	}
+	if (UIButton("8", V2(0.05f, 0.02f)))
+	{
+
+	}
+
+
+	UILayoutHorizontal(0.1f * VECTOR2_ONE);
+	if (UIButton("9", V2(0.05f, 0.02f)))
+	{
+
+	}
+	if (UIButton("10", V2(0.05f, 0.02f)))
+	{
+		printf("10\n");
+	}
+	if (UIButton("11", V2(0.05f, 0.02f)))
+	{
+
+	}
+	if (UIButton("12", V2(0.05f, 0.02f)))
 	{
 
 	}

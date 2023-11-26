@@ -66,7 +66,6 @@ static inline void InsertChar(char* str, int strLen, int index, char c)
 	str[index] = c;
 }
 
-
 static inline void RemoveChar(char* str, int strLen, int index)
 {
 	int charCnt = strLen - index;
