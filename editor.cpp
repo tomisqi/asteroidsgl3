@@ -12,10 +12,13 @@
 #define CAM_ZOOM_STEP 100.0f
 #define CAM_INITIAL_SIZE (2.0f * ScreenDim)
 #define MAX_ENTITIES 3
+#define UI_DELTA V2(0.005f, 0.005f)
 
 
 struct Entity
 {
+	char name[128];
+	U32 id;
 	Vector2 pos;
 	Vector2 facingV;
 	float size;
@@ -153,77 +156,14 @@ static Rect GetSelectionRect(Mouse* mouse_p)
 
 static void UI()
 {	
-
-	if (UIButton("Reset", NewRect(V2(0.94f, 0.97f), V2(0.05f, 0.02f))))
+	UILayoutVertical(V2(0.01f, 0.97f), UI_DELTA);
+	if (UIButton("Reset", V2(0.05f, 0.02f)))
 	{
 		camera.rect = NewRectCenterPos(VECTOR2_ZERO, CAM_INITIAL_SIZE);
 	}
-	if (UIButton("+", NewRect(V2(0.94f, 0.945f), V2(0.02f, 0.02f))))
+	if (UIButton("Save", V2(0.05f, 0.02f)))
 	{
-		Vector2 camCenter = GetRectCenter(camera.rect);
-		Vector2 camSize = camera.rect.size - 5 * CAM_ZOOM_STEP * VECTOR2_ONE;
-		camera.rect = NewRectCenterPos(camCenter, camSize);
-	}
-	if (UIButton("-", NewRect(V2(0.97f, 0.945f), V2(0.02f, 0.02f))))
-	{
-		Vector2 camCenter = GetRectCenter(camera.rect);
-		Vector2 camSize = camera.rect.size + 5 * CAM_ZOOM_STEP * VECTOR2_ONE;
-		camera.rect = NewRectCenterPos(camCenter, camSize);
-	}
-
-	UILayoutVertical(0.5f * VECTOR2_ONE);
-	if (UIButton("1", V2(0.05f, 0.02f)))
-	{
-
-	}
-	if (UIButton("2", V2(0.05f, 0.02f)))
-	{
-
-	}
-	if (UIButton("3", V2(0.05f, 0.02f)))
-	{
-
-	}
-	if (UIButton("4", V2(0.05f, 0.02f)))
-	{
-
-	}
-
-	UILayoutVertical(0.8f * VECTOR2_ONE);
-	if (UIButton("5", V2(0.05f, 0.02f)))
-	{
-
-	}
-	if (UIButton("6", V2(0.05f, 0.02f)))
-	{
-
-	}
-	if (UIButton("7", V2(0.05f, 0.02f)))
-	{
-
-	}
-	if (UIButton("8", V2(0.05f, 0.02f)))
-	{
-
-	}
-
-
-	UILayoutHorizontal(0.1f * VECTOR2_ONE);
-	if (UIButton("9", V2(0.05f, 0.02f)))
-	{
-
-	}
-	if (UIButton("10", V2(0.05f, 0.02f)))
-	{
-		printf("10\n");
-	}
-	if (UIButton("11", V2(0.05f, 0.02f)))
-	{
-
-	}
-	if (UIButton("12", V2(0.05f, 0.02f)))
-	{
-
+		
 	}
 }
 
@@ -240,13 +180,17 @@ void EditorInit()
 	camera.rect = NewRectCenterPos(VECTOR2_ZERO, CAM_INITIAL_SIZE);
 
 	memset(&ship, 0, sizeof(ship));
+	sprintf(ship.name, "%s", "Ship");
+	ship.id = 1;
 	ship.pos = VECTOR2_ZERO;
 	ship.facingV = VECTOR2_UP;
 	ship.size = 85.0f;
 	ship.textureHandle = TEXTURE_SPACECRAFT;
-	ship.uv = RECT_ONE;
+	ship.uv = RECT_ONE;	
 
 	memset(&asteroid, 0, sizeof(asteroid));
+	sprintf(asteroid.name, "%s", "Asteroid");
+	asteroid.id = 2;
 	asteroid.pos = 500.0f * VECTOR2_ONE;
 	asteroid.facingV = VECTOR2_UP;
 	asteroid.size = 150.0f;
@@ -254,6 +198,8 @@ void EditorInit()
 	asteroid.uv = NewRect(VECTOR2_ZERO, V2(0.25f, 0.25f));
 
 	memset(&asteroid2, 0, sizeof(asteroid2));
+	sprintf(asteroid2.name, "%s", "Asteroid");
+	asteroid2.id = 3;
 	asteroid2.pos = -325.0f * VECTOR2_ONE;
 	asteroid2.facingV = VECTOR2_UP;
 	asteroid2.size = 80.0f;

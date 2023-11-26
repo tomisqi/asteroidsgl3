@@ -37,10 +37,10 @@ void UIRect(Rect rect, Color color);
 
 void UICharCallback(unsigned int codepoint);
 
-void UILayout_(int id, bool keyboardNavigate, UILayoutE uiLayout, Vector2 pos);
+void UILayout_(int id, bool keyboardNavigate, UILayoutE uiLayout, Vector2 pos, Vector2 delta);
 
-#define UILayout(keyboardNavigate) UILayout_(__COUNTER__ + 1, keyboardNavigate, UI_NONE, VECTOR2_ZERO)
+#define UILayout(keyboardNavigate) UILayout_(__COUNTER__ + 1, keyboardNavigate, UI_NONE, VECTOR2_ZERO, VECTOR2_ZERO)
 
-#define UILayoutVertical(pos) UILayout_(__COUNTER__ + 1, false, UI_VERTICAL, pos)
+#define UILayoutVertical(pos, delta) UILayout_(__COUNTER__ + 1, false, UI_VERTICAL, pos, delta)
 
-#define UILayoutHorizontal(pos) UILayout_(__COUNTER__ + 1, false, UI_HORIZONTAL, pos)
+#define UILayoutHorizontal(pos, delta) UILayout_(__COUNTER__ + 1, false, UI_HORIZONTAL, pos, delta)

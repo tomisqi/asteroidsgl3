@@ -37,6 +37,7 @@ struct Layout
 {
 	UILayoutE uiLayout;
 	bool keyboardNavigate;
+	Vector2 delta;
 
 	Vector2 nextUiPos;
 };
@@ -75,6 +76,7 @@ void UIInit(Renderer* renderer_p)
 	ui.layoutDefault.uiLayout = UI_NONE;
 	ui.layoutDefault.keyboardNavigate = false;
 	ui.layoutDefault.nextUiPos = V2(0.5f, 0.5f);
+	ui.layoutDefault.delta = V2(0.005f, 0.005f);
 }
 
 static Mouse GetUiMouse()
@@ -189,8 +191,8 @@ bool UIButton(const char* text, Rect rect, UITextAlignmentE textAlignment)
 
 	Layout* layout_p = &ui.layout;
 
-	if (layout_p->uiLayout == UI_VERTICAL)   layout_p->nextUiPos = rect.pos + rect.size.y * VECTOR2_DOWN  + 0.005f * VECTOR2_DOWN;
-	if (layout_p->uiLayout == UI_HORIZONTAL) layout_p->nextUiPos = rect.pos + rect.size.x * VECTOR2_RIGHT + 0.005f * VECTOR2_RIGHT;
+	if (layout_p->uiLayout == UI_VERTICAL)        layout_p->nextUiPos = rect.pos + rect.size.y * VECTOR2_DOWN  + layout_p->delta.y * VECTOR2_DOWN;
+	else if (layout_p->uiLayout == UI_HORIZONTAL) layout_p->nextUiPos = rect.pos + rect.size.x * VECTOR2_RIGHT + layout_p->delta.x * VECTOR2_RIGHT;
 
 	if (RectContains(rect, mouse.pos) || (layout_p->keyboardNavigate && (ui.buttonActive == thisButton)))
 	{
@@ -217,12 +219,13 @@ bool UIButton(const char* text, Vector2 size, UITextAlignmentE textAlignment)
 	return UIButton(text, rect, textAlignment);
 }
 
-void UILayout_(int id, bool keyboardNavigate, UILayoutE uiLayout, Vector2 pos)
+void UILayout_(int id, bool keyboardNavigate, UILayoutE uiLayout, Vector2 pos, Vector2 delta)
 {
 	//printf("%d\n", id);
 	ui.layout.keyboardNavigate = keyboardNavigate;
 	ui.layout.uiLayout = uiLayout;
 	ui.layout.nextUiPos = pos;
+	ui.layout.delta = delta;
 }
 
 static int FindClosestCharIdx(char* textBuf, int textLen, float startPosX, float xpos)
